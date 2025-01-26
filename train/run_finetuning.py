@@ -5,7 +5,6 @@ import wandb
 import torch
 import evaluate
 import numpy as np
-from torch.backends.mkl import verbose
 from transformers import (
     Seq2SeqTrainingArguments,
     Seq2SeqTrainer,
@@ -14,14 +13,18 @@ from transformers import (
 from model.configuration_t5 import SignT5Config
 from model.modeling_t5 import T5ModelForSLT
 from utils.translation import postprocess_text
-
-import torch.distributed as dist
+from dataset.generic_sl_dataset import SignFeatureDataset as DatasetForSLT
 
 from dotenv import load_dotenv
 load_dotenv()
 from tqdm import tqdm
 
 def init_wandb(args):
+
+    if args.report_to != 'wandb':
+        os.environ["WANDB_DISABLED"] = "true"
+        print("Disabling wandb. To enable, set report_to: 'wandb'")
+        return
 
     if args.dev:
         os.environ["WANDB_DISABLED"] = "true"
@@ -41,7 +44,7 @@ def init_wandb(args):
     wandb.init(
         project=args.project_name,
         # name=args.model_name,
-        tags=[args.dataset_type, args.transform, args.modality] + (["dev"] if args.dev else []) + (["sweep"] if args.sweep else []),
+        # tags=[args.dataset_type, args.transform, args.modality] + (["dev"] if args.dev else []) + (["sweep"] if args.sweep else []),
         config=config,
     )
 
@@ -57,45 +60,45 @@ def parse_args():
     parser.add_argument("--config_file", type=str, default=None)
 
     # Required parameters
-    parser.add_argument("--model_name", type=str, default="h2s-test")
-    parser.add_argument("--dataset_type", type=str, default="how2sign", choices=["how2sign", "yasl"])
-    parser.add_argument("--dataset_dir", type=str, default='/home/kara-nlp/Documents/Repositories/Thesis/SLT/Datasets/How2Sign/Mediapipe')
+    parser.add_argument("--model_name", type=str, default="T5_for_SLT")
+    # parser.add_argument("--dataset_type", type=str, default="how2sign", choices=["how2sign", "yasl"])
+    # parser.add_argument("--dataset_dir", type=str, default='/home/kara-nlp/Documents/Repositories/Thesis/SLT/Datasets/How2Sign/Mediapipe')
     parser.add_argument("--output_dir", default='./results',type=str)
     parser.add_argument("--seed", type=int, default=42)
     
-    # New data scheme
-    parser.add_argument('--annotation_file', type=str)
-    parser.add_argument('--metadata_file', type=str)
+    # # New data scheme
+    # parser.add_argument('--annotation_file', type=str)
+    # parser.add_argument('--metadata_file', type=str)
 
     # Data processing
-    parser.add_argument("--skip_frames", action="store_true")
+    parser.add_argument("--skip_frames", default=None)
     parser.add_argument("--max_token_length", type=int, default=128)
     parser.add_argument("--max_sequence_length", type=int, default=250)
     parser.add_argument("--transform", type=str, default="yasl", choices=["yasl", "custom"])
-    parser.add_argument("--modality", type=str, default="pose", choices=["pose", "sign2vec", "mae"])
+    # parser.add_argument("--modality", type=str, default="pose", choices=["pose", "sign2vec", "mae"])
 
     # Training arguments
-    parser.add_argument("--embedding_dim", type=int, default=255)
+    # parser.add_argument("--embedding_dim", type=int, default=255)
     parser.add_argument("--model_id", type=str, default="t5-small")
-    parser.add_argument("--max_training_steps", type=int, default=20_000) # TODO: fix
+    parser.add_argument("--max_training_steps", type=int, default=20_000) # TODO
     parser.add_argument("--eval_steps", type=int, default=100)
     parser.add_argument("--save_steps", type=int, default=100)
     parser.add_argument("--per_device_train_batch_size", type=int, default=16)
     parser.add_argument("--per_device_eval_batch_size", type=int, default=1)
     parser.add_argument("--gradient_accumulation_steps", type=float, default=4)
     parser.add_argument("--learning_rate", type=float, default=0.001)
-    parser.add_argument("--lr_scheduler_type", type=str, default='linear')
+    parser.add_argument("--lr_scheduler_type", type=str, default='constant')
     parser.add_argument("--weight_decay", type=float, default=0.0)
     parser.add_argument("--fp16", action="store_true")
     parser.add_argument("--push_to_hub", action="store_true")
     parser.add_argument("--report_to", type=str, default=None)
     parser.add_argument("--logging_steps", type=int, default=1)
     parser.add_argument("--pose_dim", type=int, default=208)
-    parser.add_argument("--hidden_dropout_prob", type=float, default=0.1)
+    parser.add_argument("--hidden_dropout_prob", type=float, default=0.0)
 
     # Evaluation arguments
     parser.add_argument("--num_beams", type=int, default=5)
-    parser.add_argument("--length_penalty", type=float, default=0.6)
+    # parser.add_argument("--length_penalty", type=float, default=0.6)
     parser.add_argument("--early_stopping", action="store_true")
     parser.add_argument('--no_repeat_ngram_size', type=int, default=0)
 
@@ -105,7 +108,7 @@ def parse_args():
     parser.add_argument("--project_name", type=str, default="h2s-t5")
     parser.add_argument("--max_train_samples", type=int, default=None)
     parser.add_argument("--max_val_samples", type=int, default=None)
-    parser.add_argument("--is_normalized", action="store_true")
+    # parser.add_argument("--is_normalized", action="store_true")
     parser.add_argument("--resume_from_checkpoint", type=str, default=None)
     parser.add_argument("--load_only_weights", action="store_true")
 
@@ -114,12 +117,12 @@ def parse_args():
     return parser.parse_args()
 
 
-def read_from_config(args):
+def load_config(args):
 
     import yaml
 
-    if args.config_file is None and args.annotation_file is None and args.metadata_file is None:
-        raise ValueError("Please provide a config file or annotation and metadata file")
+    if args.config_file is None:
+        raise ValueError("Please provide a config_file")
 
     if args.config_file is not None:
         with open(args.config_file, "r") as f:
@@ -129,35 +132,39 @@ def read_from_config(args):
         for key, value in config.items():
             setattr(args, key, value)
 
-    if args.model_name and 'PBS_JOBID' in os.environ.keys(): # TODO: SLURM_JOBID
+    if args.model_name and 'PBS_JOBID' in os.environ.keys():
         args.model_name = args.model_name + '_' + os.environ['PBS_JOBID']
+    if args.model_name and 'SLURM_JOB_ID' in os.environ.keys():
+        args.model_name = args.model_name + '_' + os.environ['SLURM_JOB_ID']
 
     return args
 
 if __name__ == "__main__":
 
     args = parse_args()
-    args = read_from_config(args)
+    args = load_config(args)
 
     if os.environ.get("LOCAL_RANK", "0") == "0":
         init_wandb(args)
     
     # Initialize the custom model
-    config = SignT5Config(
-        base_model_name=args.model_id,
-        sign_input_dim=args.pose_dim,
-    )
+    model_config = SignT5Config()
+    for param, value in args.ModelArguments.items():
+        if param not in vars(model_config):
+            print('f{param} not in SignT5Config. It may be ignored...}')
+        model_config.__setattr__(param, value)
 
     if args.load_only_weights:
         assert args.resume_from_checkpoint, "resume_from_checkpoint must be provided when running with load_only_weights"
-        model = T5ModelForSLT.from_pretrained(args.resume_from_checkpoint, config=config)
+        model = T5ModelForSLT.from_pretrained(args.resume_from_checkpoint, config=model_config)
         args.resume_from_checkpoint = None
     else:
-        model = T5ModelForSLT(config=config)
+        model = T5ModelForSLT(config=model_config)
     for param in model.parameters(): param.data = param.data.contiguous()
     tokenizer = T5Tokenizer.from_pretrained(args.model_id)
 
-    wandb.config.update(vars(model.config))
+    if args.report_to == 'wandb':
+        wandb.config.update(vars(model.config))
 
     # Add collate_fn to DataLoader
     def collate_fn(batch):
@@ -184,61 +191,24 @@ if __name__ == "__main__":
             ]).squeeze(0).to(torch.long),
         }
 
-    if args.dataset_type == 'how2sign':
-        from dataset.how2sign import How2SignForSLT as DatasetForSLT
-    elif args.dataset_type == 'yasl':
-        from dataset.yasl import YoutubeASLForSLT as DatasetForSLT
-    else:
-        raise ValueError(f"Dataset type {args.dataset_type} not supported")
+    train_dataset = DatasetForSLT(tokenizer= tokenizer,
+                                sign_data_args=args.SignDataArguments,
+                                split='train',
+                                skip_frames=args.skip_frames,
+                                max_token_length=args.max_token_length,
+                                max_sequence_length=args.max_sequence_length,
+                                max_samples=args.max_train_samples,
+                                )
 
-    train_dataset = DatasetForSLT(
-        h5_fpath=args.dataset_dir,
-        mode='train' if not args.dev else 'dev',
-        transform=args.transform,
-        max_token_length=args.max_token_length,
-        max_sequence_length=args.max_sequence_length,
-        skip_frames=args.skip_frames,
-        tokenizer=args.model_id,
-        max_instances=args.max_train_samples,
-        input_type=args.modality,
-        annotation_fpath=args.annotation_file,
-        metadata_fpath=args.metadata_file,
-        is_normalized=args.is_normalized,
-        verbose=args.verbose,
-    )
+    val_dataset = DatasetForSLT(tokenizer= tokenizer,
+                                sign_data_args=args.SignDataArguments,
+                                split='dev',
+                                skip_frames=args.skip_frames,
+                                max_token_length=args.max_token_length,
+                                max_sequence_length=args.max_sequence_length,
+                                max_samples=args.max_val_samples,
+                                )
 
-    val_dataset = DatasetForSLT(
-        h5_fpath=args.dataset_dir,
-        mode='dev' if not args.dev else 'dev',
-        transform=args.transform,
-        max_token_length=args.max_token_length,
-        max_sequence_length=args.max_sequence_length,
-        skip_frames=args.skip_frames,
-        tokenizer=args.model_id,
-        max_instances=args.max_val_samples,
-        input_type=args.modality,
-        annotation_fpath=args.annotation_file,
-        metadata_fpath=args.metadata_file,
-        is_normalized=args.is_normalized,
-        verbose=args.verbose,
-    )
-
-    if args.dataset_type == 'how2sign':
-        test_dataset = DatasetForSLT(
-            h5_fpath=args.dataset_dir,
-            mode='test' if not args.dev else 'dev',
-            transform=args.transform,
-            max_token_length=args.max_token_length,
-            max_sequence_length=args.max_sequence_length,
-            skip_frames=args.skip_frames,
-            tokenizer=args.model_id,
-            input_type=args.modality,
-            annotation_fpath=args.annotation_file,
-            metadata_fpath=args.metadata_file,
-            is_normalized=args.is_normalized,
-        )
-
-    
     if args.verbose:
         print(f"Training dataset: {len(train_dataset)}")
         print(f"Validation dataset: {len(val_dataset)}")
@@ -310,6 +280,7 @@ if __name__ == "__main__":
         output_dir=os.path.join(args.output_dir, args.model_name),
         logging_steps=args.logging_steps,
         num_train_epochs=num_train_epochs,
+        # max_steps=args.max_training_steps,
         optim="adafactor",
         learning_rate=args.learning_rate,
         lr_scheduler_type=args.lr_scheduler_type,
@@ -331,7 +302,9 @@ if __name__ == "__main__":
         generation_config=model.base_model.generation_config,
         ddp_find_unused_parameters=False,
     )
-    wandb.config.update(vars(training_args))
+
+    if args.report_to == 'wandb':
+        wandb.config.update(vars(training_args))
 
     trainer = Seq2SeqTrainer(
         model=model,
@@ -403,9 +376,9 @@ if __name__ == "__main__":
         "val": val_bleu,
     }
 
-    with open(os.path.join(args.output_dir, args.model_name, "scores.json"), "w") as f:
+    with open(os.path.join(args.output_dir, args.model_name, "va_scores.json"), "w") as f:
         json.dump(scores, f)
-        print(f'Scores saved to {os.path.join(args.output_dir, args.model_name, "scores.json")}')
+        print(f'Scores saved to {os.path.join(args.output_dir, args.model_name, "val_scores.json")}')
 
 
 
