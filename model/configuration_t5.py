@@ -6,7 +6,7 @@ class SignT5Config(PretrainedConfig):
 
     model_type = "t5"
 
-    def __init__( # TODO: where did it came from
+    def __init__(
             self,
             base_model_name: str = "t5-small",
             sign_input_dim=208,
