@@ -18,152 +18,150 @@ from dataset.generic_sl_dataset import SignFeatureDataset as DatasetForSLT
 from dotenv import load_dotenv
 load_dotenv()
 from tqdm import tqdm
+import yaml
+import argparse
 
-def init_wandb(args):
-
-    if args.report_to != 'wandb':
-        os.environ["WANDB_DISABLED"] = "true"
-        print("Disabling wandb. To enable, set report_to: 'wandb'")
-        return
-
-    if args.dev:
-        os.environ["WANDB_DISABLED"] = "true"
-        print("Running in dev mode, disabling wandb")
-        return
-
+def init_wandb(config):
     wandb.login(
         key=os.getenv("WANDB_API_KEY")
     )
-
-    system_config = ['PBS_JOBID', 'SLURM_JOB_ID']
-    config= {'args': vars(args), 'system': {}}
-    for variable in system_config:
-        if variable in os.environ.keys():
-            config['system'][variable] = os.environ[variable]
-
     wandb.init(
-        project=args.project_name,
-        # name=args.model_name,
-        # tags=[args.dataset_type, args.transform, args.modality] + (["dev"] if args.dev else []) + (["sweep"] if args.sweep else []),
+        project=config['TrainingArguments']["project_name"],
         config=config,
     )
+    wandb.run.name = '{}-{}'.format(wandb.run.name, config['TrainingArguments']['project_name'])
 
     return wandb
 
 def parse_args():
-
-    import argparse
+    """
+    Parse command line arguments.
+    All the arguments are set to None by default. Main source of arguments is the config file.
+    Arguments set to a non-None value will override any arguments set by the config.
+    Returns:
+    args (argparse.Namespace): Parsed command line arguments
+    """
 
     parser = argparse.ArgumentParser()
 
     # Configuration
-    parser.add_argument("--config_file", type=str, default=None)
+    parser.add_argument("--config_file", type=str, default='config.yaml')
 
-    # Required parameters
-    parser.add_argument("--model_name", type=str, default="T5_for_SLT")
-    # parser.add_argument("--dataset_type", type=str, default="how2sign", choices=["how2sign", "yasl"])
-    # parser.add_argument("--dataset_dir", type=str, default='/home/kara-nlp/Documents/Repositories/Thesis/SLT/Datasets/How2Sign/Mediapipe')
-    parser.add_argument("--output_dir", default='./results',type=str)
-    parser.add_argument("--seed", type=int, default=42)
-    
-    # # New data scheme
-    # parser.add_argument('--annotation_file', type=str)
-    # parser.add_argument('--metadata_file', type=str)
+    # Core parameters
+    parser.add_argument("--project_name", type=str, default=None)
+    parser.add_argument("--model_name", type=str, default=None)
+    parser.add_argument("--output_dir", type=str, default=None)
+    parser.add_argument("--seed", type=int, default=None) # TODO: make sure seed is set right
+    parser.add_argument("--resume_from_checkpoint", type=str, default=None)
+    parser.add_argument("--load_only_weights", type=bool, default=None)
 
-    # Data processing
-    parser.add_argument("--skip_frames", default=None)
-    parser.add_argument("--max_token_length", type=int, default=128)
-    parser.add_argument("--max_sequence_length", type=int, default=250)
-    parser.add_argument("--transform", type=str, default="yasl", choices=["yasl", "custom"])
-    # parser.add_argument("--modality", type=str, default="pose", choices=["pose", "sign2vec", "mae"])
-
-    # Training arguments
-    # parser.add_argument("--embedding_dim", type=int, default=255)
-    parser.add_argument("--model_id", type=str, default="t5-small")
-    parser.add_argument("--max_training_steps", type=int, default=20_000) # TODO
-    parser.add_argument("--eval_steps", type=int, default=100)
-    parser.add_argument("--save_steps", type=int, default=100)
-    parser.add_argument("--per_device_train_batch_size", type=int, default=16)
-    parser.add_argument("--per_device_eval_batch_size", type=int, default=1)
-    parser.add_argument("--gradient_accumulation_steps", type=float, default=4)
-    parser.add_argument("--learning_rate", type=float, default=0.001)
-    parser.add_argument("--lr_scheduler_type", type=str, default='constant')
-    parser.add_argument("--weight_decay", type=float, default=0.0)
-    parser.add_argument("--fp16", action="store_true")
-    parser.add_argument("--push_to_hub", action="store_true")
+    # Logging and saving
     parser.add_argument("--report_to", type=str, default=None)
-    parser.add_argument("--logging_steps", type=int, default=1)
-    parser.add_argument("--pose_dim", type=int, default=208)
-    parser.add_argument("--hidden_dropout_prob", type=float, default=0.0)
+    parser.add_argument("--logging_steps", type=int, default=None)
+    parser.add_argument("--eval_steps", type=int, default=None)
+    parser.add_argument("--save_steps", type=int, default=None)
+    parser.add_argument("--push_to_hub", type=bool, default=None)
 
-    # Evaluation arguments
-    parser.add_argument("--num_beams", type=int, default=5)
-    # parser.add_argument("--length_penalty", type=float, default=0.6)
-    parser.add_argument("--early_stopping", action="store_true")
-    parser.add_argument('--no_repeat_ngram_size', type=int, default=0)
-
-    # Running arguments
-    parser.add_argument("--dev", action="store_true")
-    parser.add_argument("--sweep", action="store_true")
-    parser.add_argument("--project_name", type=str, default="h2s-t5")
+    #  Debugging
     parser.add_argument("--max_train_samples", type=int, default=None)
     parser.add_argument("--max_val_samples", type=int, default=None)
-    # parser.add_argument("--is_normalized", action="store_true")
-    parser.add_argument("--resume_from_checkpoint", type=str, default=None)
-    parser.add_argument("--load_only_weights", action="store_true")
 
+    # Training arguments
+    parser.add_argument("--per_device_train_batch_size", type=int, default=None)
+    parser.add_argument("--per_device_eval_batch_size", type=int, default=None)
+    parser.add_argument("--gradient_accumulation_steps", type=float, default=None)
+    parser.add_argument("--learning_rate", type=float, default=None)
+    parser.add_argument("--lr_scheduler_type", type=str, default=None)
+    parser.add_argument("--max_training_steps", type=int, default=None)
+    parser.add_argument("--weight_decay", type=float, default=None)
+    parser.add_argument("--fp16", type=bool, default=None)
+
+    # Data processing
+    parser.add_argument("--max_sequence_length", type=int, default=None)
+    parser.add_argument("--max_token_length", type=int, default=None)
+    parser.add_argument("--skip_frames", default=None)
+
+    # Evaluation arguments
+    parser.add_argument("--num_beams", type=int, default=None)
+    parser.add_argument("--early_stopping", type=bool, default=None)
+    parser.add_argument('--no_repeat_ngram_size', type=int, default=None)
+
+    # Other arguments
     parser.add_argument("--verbose", action="store_true")
 
     return parser.parse_args()
 
 
-def load_config(args):
+def load_config(cfg_path):
+    """
+    Load config from a yaml file. 'none' and 'None' values are replaced by None value.
+    Args:
+        cfg_path: Path to config file
+    Returns:
+        config (dict): Config
+    """
+    with open(cfg_path, 'r') as file:
+        cfg = yaml.safe_load(file)
+    for param, value in cfg['TrainingArguments'].items():
+        if value == 'none' or value == 'None':
+            cfg['TrainingArguments'][param] = None
 
-    import yaml
+    # Add system job ID to config, if it exists
+    system_cfg = ['PBS_JOBID', 'SLURM_JOB_ID']
+    cfg['system'] = {}
+    for variable in system_cfg:
+        if variable in os.environ.keys():
+            cfg['system'][variable] = os.environ[variable]
+            cfg['TrainingArguments']['model_name'] += os.environ[variable]
+    return cfg
 
-    if args.config_file is None:
-        raise ValueError("Please provide a config_file")
 
-    if args.config_file is not None:
-        with open(args.config_file, "r") as f:
-            config = yaml.safe_load(f)
+def update_config(cfg, args):
+    """
+    Update config with args passed. Default None arguments are ignored.
+    Args:
+        cfg (dict): Config
+        args (argparse.Namespace): Argument parsed from the command-line
+    Returns:
+        cfg (dict): Updated config
+    """
+    for k, v in vars(args).items():
+        if k in cfg['TrainingArguments'] and v is not None:
+            cfg['TrainingArguments'][k] = v
+            print('Config value updated by args - {}: {}'.format(k, v))
+    return cfg
 
-        # Update the default arguments with the config file
-        for key, value in config.items():
-            setattr(args, key, value)
-
-    if args.model_name and 'PBS_JOBID' in os.environ.keys():
-        args.model_name = args.model_name + '_' + os.environ['PBS_JOBID']
-    if args.model_name and 'SLURM_JOB_ID' in os.environ.keys():
-        args.model_name = args.model_name + '_' + os.environ['SLURM_JOB_ID']
-
-    return args
 
 if __name__ == "__main__":
-
     args = parse_args()
-    args = load_config(args)
+    if os.environ.get("LOCAL_RANK", "0") == "0" and args.verbose:
+        print('Loading config...')
+    config = load_config(args.config_file)
+    config = update_config(config, args)
 
-    if os.environ.get("LOCAL_RANK", "0") == "0":
-        init_wandb(args)
+    training_config = config['TrainingArguments']
+    model_config = config['ModelArguments']
+
+    if os.environ.get("LOCAL_RANK", "0") == "0" and training_config['report_to'] == 'wandb':
+        init_wandb(config)
     
     # Initialize the custom model
-    model_config = SignT5Config()
-    for param, value in args.ModelArguments.items():
-        if param not in vars(model_config):
+    t5_config = SignT5Config()
+    for param, value in model_config.items():
+        if param not in vars(t5_config):
             print('f{param} not in SignT5Config. It may be ignored...}')
-        model_config.__setattr__(param, value)
+        t5_config.__setattr__(param, value)
 
-    if args.load_only_weights:
-        assert args.resume_from_checkpoint, "resume_from_checkpoint must be provided when running with load_only_weights"
-        model = T5ModelForSLT.from_pretrained(args.resume_from_checkpoint, config=model_config)
-        args.resume_from_checkpoint = None
+    if training_config['load_only_weights']:
+        assert training_config['resume_from_checkpoint'], "resume_from_checkpoint must be provided when running with load_only_weights"
+        model = T5ModelForSLT.from_pretrained(training_config['resume_from_checkpoint'], config=t5_config)
+        training_config['resume_from_checkpoint'] = None
     else:
-        model = T5ModelForSLT(config=model_config)
+        model = T5ModelForSLT(config=t5_config)
     for param in model.parameters(): param.data = param.data.contiguous()
-    tokenizer = T5Tokenizer.from_pretrained(args.model_id)
+    tokenizer = T5Tokenizer.from_pretrained(model.config.base_model_name)
 
-    if args.report_to == 'wandb':
+    if training_config['report_to'] == 'wandb': # TODO: remove redundant data
         wandb.config.update(vars(model.config))
 
     # Add collate_fn to DataLoader
@@ -174,39 +172,39 @@ if __name__ == "__main__":
         # "labels" must be 128 tokens long
         return {
             "sign_inputs": torch.stack([
-                torch.cat((sample["sign_inputs"], torch.zeros(args.max_sequence_length - sample["sign_inputs"].shape[0], args.pose_dim)), dim=0)
+                torch.cat((sample["sign_inputs"], torch.zeros(training_config['max_sequence_length'] - sample["sign_inputs"].shape[0], config['SignModelArguments']['projectors']['pose']['dim'])), dim=0)
                 for sample in batch
             ]),
             "attention_mask": torch.stack([
-                torch.cat((sample["attention_mask"], torch.zeros(args.max_sequence_length - sample["attention_mask"].shape[0])), dim=0)
-                if sample["attention_mask"].shape[0] < args.max_sequence_length
+                torch.cat((sample["attention_mask"], torch.zeros(training_config['max_sequence_length'] - sample["attention_mask"].shape[0])), dim=0)
+                if sample["attention_mask"].shape[0] < training_config['max_sequence_length']
                 else sample["attention_mask"]
                 for sample in batch
             ]),
             "labels": torch.stack([
-                torch.cat((sample["labels"].squeeze(0), torch.zeros(args.max_token_length - sample["labels"].shape[0])), dim=0)
-                if sample["labels"].shape[0] < args.max_token_length
+                torch.cat((sample["labels"].squeeze(0), torch.zeros(training_config['max_token_length'] - sample["labels"].shape[0])), dim=0)
+                if sample["labels"].shape[0] < training_config['max_token_length']
                 else sample["labels"]
                 for sample in batch
             ]).squeeze(0).to(torch.long),
         }
 
     train_dataset = DatasetForSLT(tokenizer= tokenizer,
-                                sign_data_args=args.SignDataArguments,
+                                sign_data_args=config['SignDataArguments'],
                                 split='train',
-                                skip_frames=args.skip_frames,
-                                max_token_length=args.max_token_length,
-                                max_sequence_length=args.max_sequence_length,
-                                max_samples=args.max_train_samples,
+                                skip_frames=training_config['skip_frames'],
+                                max_token_length=training_config['max_token_length'],
+                                max_sequence_length=training_config['max_sequence_length'],
+                                max_samples=training_config['max_train_samples'],
                                 )
 
     val_dataset = DatasetForSLT(tokenizer= tokenizer,
-                                sign_data_args=args.SignDataArguments,
+                                sign_data_args=config['SignDataArguments'],
                                 split='dev',
-                                skip_frames=args.skip_frames,
-                                max_token_length=args.max_token_length,
-                                max_sequence_length=args.max_sequence_length,
-                                max_samples=args.max_val_samples,
+                                skip_frames=training_config['skip_frames'],
+                                max_token_length=training_config['max_token_length'],
+                                max_sequence_length=training_config['max_sequence_length'],
+                                max_samples=training_config['max_val_samples'],
                                 )
 
     if args.verbose:
@@ -262,14 +260,15 @@ if __name__ == "__main__":
 
         return result
 
-    num_train_epochs = args.max_training_steps // (len(train_dataset) // args.per_device_train_batch_size // args.gradient_accumulation_steps)
+    num_train_epochs = training_config['max_training_steps'] // (len(train_dataset) //
+             training_config['per_device_train_batch_size'] // training_config['gradient_accumulation_steps'])
     num_train_epochs = max(math.ceil(num_train_epochs), 1)
 
     print(f"""
-        Model: {args.model_name}
+        Model: {training_config['model_name']}
         Training epochs: {num_train_epochs}
-        Number of training steps: {args.max_training_steps}
-        Number of training batches: {len(train_dataset) // args.per_device_train_batch_size}
+        Number of training steps: {training_config['max_training_steps']}
+        Number of training batches: {len(train_dataset) // training_config['per_device_train_batch_size']}
         Number of validation examples: {len(val_dataset)}
     """)
 
@@ -277,33 +276,33 @@ if __name__ == "__main__":
     # assert args.per_device_train_batch_size * args.gradient_accumulation_steps == 128
 
     training_args = Seq2SeqTrainingArguments(
-        output_dir=os.path.join(args.output_dir, args.model_name),
-        logging_steps=args.logging_steps,
+        output_dir=os.path.join(training_config['output_dir'], training_config['model_name']),
+        logging_steps=training_config['logging_steps'],
         num_train_epochs=num_train_epochs,
         # max_steps=args.max_training_steps,
         optim="adafactor",
-        learning_rate=args.learning_rate,
-        lr_scheduler_type=args.lr_scheduler_type,
-        weight_decay=args.weight_decay,
-        per_device_train_batch_size=args.per_device_train_batch_size,
-        per_device_eval_batch_size=args.per_device_eval_batch_size,
-        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        learning_rate=training_config['learning_rate'],
+        lr_scheduler_type=training_config['lr_scheduler_type'],
+        weight_decay=training_config['weight_decay'],
+        per_device_train_batch_size=training_config['per_device_train_batch_size'],
+        per_device_eval_batch_size=training_config['per_device_eval_batch_size'],
+        gradient_accumulation_steps=training_config['gradient_accumulation_steps'],
         eval_accumulation_steps=1,
-        fp16=args.fp16,
-        push_to_hub=args.push_to_hub,
-        hub_model_id=args.model_name,
+        fp16=training_config['fp16'],
+        push_to_hub=training_config['push_to_hub'],
+        hub_model_id=training_config['model_name'],
         metric_for_best_model="bleu",
         save_total_limit=3,
         predict_with_generate=True,
         evaluation_strategy="steps",
-        eval_steps=args.eval_steps,
+        eval_steps=training_config['eval_steps'],
         save_strategy="steps",
-        save_steps=args.save_steps,
+        save_steps=training_config['save_steps'],
         generation_config=model.base_model.generation_config,
         ddp_find_unused_parameters=False,
     )
 
-    if args.report_to == 'wandb':
+    if training_config['report_to'] == 'wandb': # TODO: remove redundant data
         wandb.config.update(vars(training_args))
 
     trainer = Seq2SeqTrainer(
@@ -316,11 +315,11 @@ if __name__ == "__main__":
         compute_metrics=compute_metrics,
     )
 
-    trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
+    trainer.train(resume_from_checkpoint=training_config['resume_from_checkpoint'])
 
     val_dataloader = torch.utils.data.DataLoader(
         val_dataset,
-        batch_size=args.per_device_eval_batch_size,
+        batch_size=training_config['per_device_eval_batch_size'],
         collate_fn=collate_fn,
     )
 
@@ -333,10 +332,10 @@ if __name__ == "__main__":
                 batch['labels'] = batch['labels'].unsqueeze(0)
             outputs = model.generate(
                 **batch,
-                early_stopping=args.early_stopping,
-                no_repeat_ngram_size=args.no_repeat_ngram_size,
-                max_length=args.max_sequence_length,
-                num_beams=args.num_beams,
+                early_stopping=training_config['early_stopping'],
+                no_repeat_ngram_size=training_config['no_repeat_ngram_size'],
+                max_length=training_config['max_sequence_length'],
+                num_beams=training_config['num_beams'],
                 bos_token_id=tokenizer.pad_token_id,
             )
 
@@ -357,7 +356,7 @@ if __name__ == "__main__":
     val_predictions, val_labels = evaluate_model(model, val_dataloader, tokenizer)
 
     # Save predictions to file
-    with open(os.path.join(args.output_dir, args.model_name, "val_predictions.txt"), "w") as f:
+    with open(os.path.join(training_config['output_dir'], training_config['model_name'], "val_predictions.txt"), "w") as f:
         all_predictions = [
             {
                 "prediction": prediction,
@@ -367,7 +366,7 @@ if __name__ == "__main__":
         ]
 
         json.dump(all_predictions, f)
-        print(f'Predictions saved to {os.path.join(args.output_dir, args.model_name, "val_predictions.txt")}')
+        print(f'Predictions saved to {os.path.join(training_config['output_dir'], training_config['model_name'], "val_predictions.txt")}')
 
     val_bleu = sacrebleu.compute(predictions=val_predictions, references=val_labels)
 
@@ -376,9 +375,9 @@ if __name__ == "__main__":
         "val": val_bleu,
     }
 
-    with open(os.path.join(args.output_dir, args.model_name, "va_scores.json"), "w") as f:
+    with open(os.path.join(training_config['output_dir'], training_config['model_name'], "va_scores.json"), "w") as f:
         json.dump(scores, f)
-        print(f'Scores saved to {os.path.join(args.output_dir, args.model_name, "val_scores.json")}')
+        print(f'Scores saved to {os.path.join(training_config['output_dir'], training_config['model_name'], "val_scores.json")}')
 
 
 
