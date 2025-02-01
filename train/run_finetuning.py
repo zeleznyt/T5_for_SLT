@@ -29,7 +29,7 @@ def init_wandb(config):
         project=config['TrainingArguments']["project_name"],
         config=config,
     )
-    wandb.run.name = '{}-{}'.format(wandb.run.name, config['TrainingArguments']['project_name']) # TODO: replace projectname for model name. add "-" in the model name
+    wandb.run.name = '{}-{}'.format(wandb.run.name, config['TrainingArguments']['model_name']) # TODO: replace projectname for model name. add "-" in the model name
 
     return wandb
 
@@ -121,7 +121,7 @@ def load_config(cfg_path):
     for variable in system_cfg:
         if variable in os.environ.keys():
             cfg['system'][variable] = os.environ[variable]
-            cfg['TrainingArguments']['model_name'] += os.environ[variable]
+            cfg['TrainingArguments']['model_name'] += ('-' + os.environ[variable])
     return cfg
 
 
