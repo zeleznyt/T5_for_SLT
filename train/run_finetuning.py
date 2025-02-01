@@ -29,7 +29,7 @@ def init_wandb(config):
         project=config['TrainingArguments']["project_name"],
         config=config,
     )
-    wandb.run.name = '{}-{}'.format(wandb.run.name, config['TrainingArguments']['project_name'])
+    wandb.run.name = '{}-{}'.format(wandb.run.name, config['TrainingArguments']['project_name']) # TODO: replace projectname for model name. add "-" in the model name
 
     return wandb
 
@@ -366,7 +366,7 @@ if __name__ == "__main__":
         ]
 
         json.dump(all_predictions, f)
-        print(f'Predictions saved to {os.path.join(training_config['output_dir'], training_config['model_name'], "val_predictions.txt")}')
+        print(f'Predictions saved to {os.path.join(training_config["output_dir"], training_config["model_name"], "val_predictions.txt")}')
 
     val_bleu = sacrebleu.compute(predictions=val_predictions, references=val_labels)
 
@@ -375,7 +375,7 @@ if __name__ == "__main__":
         "val": val_bleu,
     }
 
-    with open(os.path.join(training_config['output_dir'], training_config['model_name'], "va_scores.json"), "w") as f:
+    with open(os.path.join(training_config["output_dir"], training_config["model_name"], "va_scores.json"), "w") as f:
         json.dump(scores, f)
         print(f'Scores saved to {os.path.join(training_config['output_dir'], training_config['model_name'], "val_scores.json")}')
 
