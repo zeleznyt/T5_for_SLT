@@ -33,6 +33,15 @@ def init_wandb(config):
 
     return wandb
 
+
+def set_seed(seed_value=42):
+    # random.seed(seed_value)  # Python random
+    np.random.seed(seed_value)  # NumPy random
+    torch.manual_seed(seed_value)  # PyTorch (CPU & CUDA)
+    torch.cuda.manual_seed(seed_value)  # GPU-specific seed
+    torch.cuda.manual_seed_all(seed_value)  # Multi-GPU safe
+
+
 def parse_args():
     """
     Parse command line arguments.
@@ -141,6 +150,8 @@ if __name__ == "__main__":
 
     training_config = config['TrainingArguments']
     model_config = config['ModelArguments']
+
+    set_seed(training_config['seed'])
 
     if os.environ.get("LOCAL_RANK", "0") == "0" and training_config['report_to'] == 'wandb':
         init_wandb(config)
