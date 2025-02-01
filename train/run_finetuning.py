@@ -60,7 +60,7 @@ def parse_args():
     parser.add_argument("--project_name", type=str, default=None)
     parser.add_argument("--model_name", type=str, default=None)
     parser.add_argument("--output_dir", type=str, default=None)
-    parser.add_argument("--seed", type=int, default=None) # TODO: make sure seed is set right
+    parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--resume_from_checkpoint", type=str, default=None)
     parser.add_argument("--load_only_weights", type=bool, default=None)
 
