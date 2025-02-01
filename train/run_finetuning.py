@@ -161,7 +161,7 @@ if __name__ == "__main__":
     for param in model.parameters(): param.data = param.data.contiguous()
     tokenizer = T5Tokenizer.from_pretrained(model.config.base_model_name)
 
-    if training_config['report_to'] == 'wandb': # TODO: remove redundant data
+    if os.environ.get("LOCAL_RANK", "0") == "0" and training_config['report_to'] == 'wandb': # TODO: remove redundant data
         wandb.config.update(vars(model.config))
 
     # Add collate_fn to DataLoader
@@ -302,7 +302,7 @@ if __name__ == "__main__":
         ddp_find_unused_parameters=False,
     )
 
-    if training_config['report_to'] == 'wandb': # TODO: remove redundant data
+    if os.environ.get("LOCAL_RANK", "0") == "0" and training_config['report_to'] == 'wandb': # TODO: remove redundant data
         wandb.config.update(vars(training_args))
 
     trainer = Seq2SeqTrainer(
