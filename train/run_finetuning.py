@@ -29,7 +29,7 @@ def init_wandb(config):
         project=config['TrainingArguments']["project_name"],
         config=config,
     )
-    wandb.run.name = '{}-{}'.format(wandb.run.name, config['TrainingArguments']['model_name']) # TODO: replace projectname for model name. add "-" in the model name
+    wandb.run.name = '{}-{}'.format(wandb.run.name, config['TrainingArguments']['model_name'])
 
     return wandb
 
