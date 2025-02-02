@@ -171,7 +171,7 @@ if __name__ == "__main__":
     else:
         model = T5ModelForSLT(config=t5_config)
     for param in model.parameters(): param.data = param.data.contiguous()
-    tokenizer = T5Tokenizer.from_pretrained(model.config.base_model_name)
+    tokenizer = T5Tokenizer.from_pretrained(model.config.base_model_name, clean_up_tokenization_spaces=True)
 
     if os.environ.get("LOCAL_RANK", "0") == "0" and training_config['report_to'] == 'wandb': # TODO: remove redundant data
         wandb.config.update(vars(model.config))
