@@ -121,7 +121,7 @@ def load_config(cfg_path):
     for variable in system_cfg:
         if variable in os.environ.keys():
             cfg['system'][variable] = os.environ[variable]
-            cfg['TrainingArguments']['model_name'] += ('-' + os.environ[variable])
+            cfg['TrainingArguments']['model_name'] = '{}-{}'.format(cfg['TrainingArguments']['model_name'], os.environ[variable])
     return cfg
 
 
