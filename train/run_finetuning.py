@@ -137,7 +137,8 @@ def update_config(cfg, args):
     for k, v in vars(args).items():
         if k in cfg['TrainingArguments'] and v is not None:
             cfg['TrainingArguments'][k] = v
-            print('Config value updated by args - {}: {}'.format(k, v))
+            if os.environ.get("LOCAL_RANK", "0") == "0" and args.verbose:
+                print('Config value updated by args - {}: {}'.format(k, v))
     return cfg
 
 
