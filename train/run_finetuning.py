@@ -27,6 +27,7 @@ def init_wandb(config):
     )
     wandb.init(
         project=config['TrainingArguments']["project_name"],
+        tags=[config["ModelArguments"]["base_model_name"]],
         config=config,
     )
     wandb.run.name = '{}-{}'.format(wandb.run.name, config['TrainingArguments']['model_name'])
