@@ -43,86 +43,39 @@ class T5ModelForSLT(PreTrainedModel):
 
     @torch.no_grad()
     def generate(
-        self,
-        sign_inputs: torch.FloatTensor = None,
-        attention_mask: Optional[torch.LongTensor] = None,
-        inputs_embeds: Optional[torch.FloatTensor] = None,
-        generation_config: Optional[GenerationConfig] = None,
-        logits_processor: Optional[LogitsProcessorList] = None,
-        stopping_criteria: Optional[StoppingCriteriaList] = None,
-        prefix_allowed_tokens_fn: Optional[
-            Callable[[int, torch.Tensor], List[int]]
-        ] = None,
-        synced_gpus: Optional[bool] = None,
-        streamer=None,
-        assistant_model: Optional["PreTrainedModel"] = None,
-        negative_prompt_ids: Optional[torch.Tensor] = None,
-        negative_prompt_attention_mask: Optional[torch.Tensor] = None,
-        **kwargs,
-    ) -> Union[GenerateOutput, torch.LongTensor]:
+            self,
+            sign_inputs: torch.FloatTensor = None,
+            attention_mask: Optional[torch.LongTensor] = None,
+            inputs_embeds: Optional[torch.FloatTensor] = None,
+            **kwargs):
+        """Overrides generate() to handle sign language inputs."""
 
+        # If no input embeddings are provided, generate them from sign_inputs
         if inputs_embeds is None:
             inputs_embeds = self.custom_linear(sign_inputs)
-        
+
         return self.model.generate(
-            input_ids=None,
+            input_ids=None,  # We use inputs_embeds instead of input_ids
             inputs_embeds=inputs_embeds,
             attention_mask=attention_mask,
-            generation_config=generation_config,
-            logits_processor=logits_processor,
-            stopping_criteria=stopping_criteria,
-            prefix_allowed_tokens_fn=prefix_allowed_tokens_fn,
-            synced_gpus=synced_gpus,
-            streamer=streamer,
-            assistant_model=assistant_model,
-            negative_prompt_ids=negative_prompt_ids,
-            negative_prompt_attention_mask=negative_prompt_attention_mask,
-            **kwargs,
-        )
-    
-    # Override the forward method to modify input embeddings
+            **kwargs)
+
     def forward(
-        self,
-        sign_inputs=None,
-        attention_mask=None,
-        decoder_input_ids=None,
-        decoder_attention_mask=None,
-        labels=None,
-        inputs_embeds=None,
-        decoder_inputs_embeds=None,
-        head_mask=None,
-        decoder_head_mask=None,
-        cross_attn_head_mask=None,
-        encoder_outputs=None,
-        past_key_values=None,
-        use_cache=None,
-        output_attentions=None,
-        output_hidden_states=None,
-        return_dict=None,
-        # cache_position=None,
-    ):
-        
+            self,
+            sign_inputs=None,
+            attention_mask=None,
+            labels=None,
+            inputs_embeds=None,
+            **kwargs):
+        """Overrides forward() to handle sign language inputs."""
+
         # Apply custom linear layer to the input embeddings
         if inputs_embeds is None:
             inputs_embeds = self.custom_linear(sign_inputs)
 
-        # Pass modified embeddings to the original T5 forward method
         return self.model.forward(
             input_ids=None,  # We use inputs_embeds instead of input_ids
             attention_mask=attention_mask,
-            decoder_input_ids=decoder_input_ids,
-            decoder_attention_mask=decoder_attention_mask,
             labels=labels,
             inputs_embeds=inputs_embeds,
-            decoder_inputs_embeds=decoder_inputs_embeds,
-            head_mask=head_mask,
-            decoder_head_mask=decoder_head_mask,
-            cross_attn_head_mask=cross_attn_head_mask,
-            encoder_outputs=encoder_outputs,
-            past_key_values=past_key_values,
-            use_cache=use_cache,
-            output_attentions=output_attentions,
-            output_hidden_states=output_hidden_states,
-            return_dict=return_dict,
-            # cache_position=cache_position,
-        )
+            **kwargs)
