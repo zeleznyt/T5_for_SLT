@@ -1,6 +1,7 @@
 # T5_for_SLT
 ## Installation
 ```
+cd T5_for_SLT/
 conda create -n t5slt python=3.12
 conda activate t5slt
 pip install -r requirements.txt
