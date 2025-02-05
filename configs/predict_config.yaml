@@ -1,0 +1,59 @@
+ModelArguments:
+  base_model_name: t5-small
+  sign_input_dim: 208
+#  hidden_dropout_prob: 0.0
+  num_beams: 5
+  max_length: 128
+#  top_k: 50
+#  top_p: 0.95
+#  temperature: 1.0
+  length_penalty: 0.6
+#  repetition_penalty: 1.0
+  early_stopping: False
+  no_repeat_ngram_size: 0
+#  do_sample: True
+
+EvaluationArguments:
+  output_dir: ./results
+  model_name: T5_YTASL_pretrain
+  skip_frames: False
+#  Data processing
+  split: test
+  max_sequence_length: 250
+  max_token_length: 128
+#  Generation parameters
+  model_dir: /path/to/model.safetensors
+  batch_size: 2
+#  Debugging
+  max_val_samples: none
+
+SignDataArguments:
+  data_dir: /media/zeleznyt/DATA/data/YTASL_small
+  annotation_path:
+    train: YT.annotations.train.json
+    dev: YT.annotations.dev.json
+    test: YT.annotations.dev.json
+  visual_features:
+    sign2vec:
+      enable_input: False
+      test: sign2vec/metadata_sign2vec.dev.json
+    mae:
+      enable_input: False
+      test: mae/metadata_mae.dev.json
+    dino:
+      enable_input: False
+      test: dino/metadata_dino.dev.json
+    pose:
+      enable_input: True
+      test: YouTubeASL.keypoints.dev.json
+
+SignModelArguments:
+  projectors:
+    sign2vec:
+      dim: 768
+    mae:
+      dim: 768
+    dino:
+      dim: 1152
+    pose:
+      dim: 208
