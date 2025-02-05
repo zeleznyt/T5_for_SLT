@@ -157,6 +157,8 @@ if __name__ == "__main__":
 
     if os.environ.get("LOCAL_RANK", "0") == "0" and training_config['report_to'] == 'wandb':
         init_wandb(config)
+    else:
+        os.environ["WANDB_DISABLED"] = "true"
     
     # Initialize the custom model
     t5_config = SignT5Config()
