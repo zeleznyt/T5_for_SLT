@@ -21,7 +21,14 @@ from tqdm import tqdm
 import yaml
 import argparse
 
-def init_wandb(config):
+def init_wandb(config, wandb_api_key=None):
+    if wandb_api_key:
+        if os.path.exists(wandb_api_key):
+            with open(wandb_api_key, "r") as f:
+                os.environ["WANDB_API_KEY"] = f.read().strip()
+        else:
+            os.environ["WANDB_API_KEY"] = wandb_api_key
+
     wandb.login(
         key=os.getenv("WANDB_API_KEY")
     )
@@ -98,6 +105,7 @@ def parse_args():
 
     # Other arguments
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--wandb_api_key", type=str, default=None)
 
     return parser.parse_args()
 
@@ -156,7 +164,7 @@ if __name__ == "__main__":
     set_seed(training_config['seed'])
 
     if os.environ.get("LOCAL_RANK", "0") == "0" and training_config['report_to'] == 'wandb':
-        init_wandb(config)
+        init_wandb(config, args.wandb_api_key)
     else:
         os.environ["WANDB_DISABLED"] = "true"
 
