@@ -159,7 +159,12 @@ if __name__ == "__main__":
         init_wandb(config)
     else:
         os.environ["WANDB_DISABLED"] = "true"
-    
+
+    if args.verbose:
+        print('Cuda available: {}'.format(torch.cuda.is_available()))
+        print('CUDA device count: {}'.format(torch.cuda.device_count()))
+        print('CUDA current device: {}'.format(torch.cuda.current_device()))
+
     # Initialize the custom model
     t5_config = SignT5Config()
     for param, value in model_config.items():
