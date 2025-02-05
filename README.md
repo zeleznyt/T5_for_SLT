@@ -1,5 +1,10 @@
 # T5_for_SLT
 ## Installation
+```
+conda create -n t5slt python=3.12
+conda activate t5slt
+pip install -r requirements.txt
+```
 ## Data
 Our T5 dataloader expects the following data structure. The example is giver for YouTubeASL dataset.
 This dataset consists of multiple videos. Each video consists of multiple clips. Each clip has its own annotation.
