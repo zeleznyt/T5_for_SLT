@@ -390,7 +390,7 @@ if __name__ == "__main__":
         "val": val_bleu,
     }
 
-    with open(os.path.join(training_config["output_dir"], training_config["model_name"], "va_scores.json"), "w") as f:
+    with open(os.path.join(training_config["output_dir"], training_config["model_name"], "val_scores.json"), "w") as f:
         json.dump(scores, f)
         print(f'Scores saved to {os.path.join(training_config['output_dir'], training_config['model_name'], "val_scores.json")}')
 
