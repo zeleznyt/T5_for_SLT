@@ -1,0 +1,83 @@
+ModelArguments:
+  base_model_name: google/mt5-base
+  sign_input_dim: 208
+  hidden_dropout_prob: 0.0
+  num_beams: 4
+  max_length: 128
+  top_k: 50
+  top_p: 0.95
+  temperature: 1.0
+  length_penalty: 2.0
+  repetition_penalty: 1.0
+  early_stopping: True
+  no_repeat_ngram_size: 3
+  do_sample: True
+
+# TrainingArguments are overwritten by not-None arguments
+TrainingArguments:
+  project_name: T5_SSL
+  model_name: mT5_SSL-A_pretrain
+  output_dir: /dev/shm/sign-language-rocognition/results
+  seed: 42
+  resume_from_checkpoint: none
+  load_only_weights: False
+#  Logging and saving
+  report_to: wandb
+  logging_steps: 20
+  eval_steps: 50
+  save_steps: 100
+  push_to_hub: False
+#  Debugging
+  max_train_samples: none
+  max_val_samples: none
+#  Training
+  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 4
+  gradient_accumulation_steps: 4
+  learning_rate: 0.0001
+  lr_scheduler_type: constant
+  max_training_steps: 100000
+  weight_decay: 0.0
+  fp16: False
+#  Data processing
+  max_sequence_length: 250
+  max_token_length: 256
+  skip_frames: True
+#  Evaluation
+  num_beams: 5
+  early_stopping: False
+  no_repeat_ngram_size: 0
+
+SignDataArguments:
+  data_dir: /dev/shm/sign-language-rocognition/SSL/outputs/Arabic_Ali/YT-ASL
+  annotation_path:
+    train: Arabic_labels/SSL.annotation.train_signers_train_sentences.json
+    dev: Arabic_labels/SSL.annotation.valid_signers_train_sentences.json
+  visual_features:
+    sign2vec:
+      enable_input: False
+      train: sign2vec/metadata_sign2vec.train.json
+      dev: sign2vec/metadata_sign2vec.dev.json
+    mae:
+      enable_input: False
+      train: mae/metadata_mae.train.json
+      dev: mae/metadata_mae.dev.json
+    dino:
+      enable_input: False
+      train: dino/metadata_dino.train.json
+      dev: dino/metadata_dino.dev.json
+    pose:
+      enable_input: True
+      train: new_split/SSL.keypoints.train_signers_train_sentences.json
+      dev: new_split/SSL.keypoints.valid_signers_train_sentences.json
+
+SignModelArguments:
+  projectors:
+    sign2vec:
+      dim: 768
+    mae:
+      dim: 768
+    dino:
+      dim: 1152
+    pose:
+      dim: 208
