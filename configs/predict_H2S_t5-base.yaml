@@ -1,0 +1,57 @@
+ModelArguments:
+  base_model_name: google-t5/t5-base
+  sign_input_dim: 208
+#  hidden_dropout_prob: 0.0
+  num_beams: 5
+  max_length: 128
+#  top_k: 50
+#  top_p: 0.95
+#  temperature: 1.0
+  length_penalty: 0.6
+#  repetition_penalty: 1.0
+  early_stopping: False
+  no_repeat_ngram_size: 0
+#  do_sample: True
+
+EvaluationArguments:
+  output_dir: ./results
+  model_name: T5_YTASL_predict
+  skip_frames: False
+#  Data processing
+  split: test
+  max_sequence_length: 250
+  max_token_length: 256
+#  Generation parameters
+  model_dir: /scratch/project_465001749/eleznyto/t5-slt/T5_for_SLT/results/5-1-YT-ASL-split_constant0.001/checkpoint-12500
+  batch_size: 16
+#  Debugging
+  max_val_samples: none
+
+SignDataArguments:
+  data_dir: /scratch/project_465001749/data/
+  annotation_path:
+    test: How2Sign/H2S.annotations.test.json
+  visual_features:
+    sign2vec:
+      enable_input: False
+      test: How2Sign/features/sign2vec/h2s.sign2vec.test.json
+    mae:
+      enable_input: False
+      test: How2Sign/features/mae/h2s.mae.test.json
+    dino:
+      enable_input: False
+      test: How2Sign/features/dino/h2s.dino.test.json
+    pose:
+      enable_input: True
+      test: How2Sign/features/keypoints/h2s.keypoints.test.json
+
+SignModelArguments:
+  projectors:
+    sign2vec:
+      dim: 768
+    mae:
+      dim: 768
+    dino:
+      dim: 1152
+    pose:
+      dim: 208
