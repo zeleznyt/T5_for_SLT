@@ -163,10 +163,11 @@ if __name__ == "__main__":
 
     set_seed(training_config['seed'])
 
-    if os.environ.get("LOCAL_RANK", "0") == "0" and training_config['report_to'] == 'wandb':
-        init_wandb(config, args.wandb_api_key)
-    else:
-        os.environ["WANDB_DISABLED"] = "true"
+    if os.environ.get("LOCAL_RANK", "0") == "0":
+        if training_config['report_to'] == 'wandb':
+            init_wandb(config, args.wandb_api_key)
+        else:
+            os.environ["WANDB_DISABLED"] = "true"
 
     if args.verbose:
         print('Cuda available: {}'.format(torch.cuda.is_available()))
