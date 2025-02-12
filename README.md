@@ -64,8 +64,16 @@ Each h5 shard has the following structure:
 
 ## Usage
 ```
+# Setup correct path
 cd T5_for_SLT/
 export PYTHONPATH=$PYTHONPATH:$(pwd)
+
+# Run training script
 python train/run_finetuning.py --config_file configs/config.yaml
+
+# Run predict script
+python eval/predict.py --config_file configs/config.yaml
 ```
 Use ```--verbose``` for extended output.
+
+For more details see [scripts](scripts/) or [config readme](configs/README.md).
