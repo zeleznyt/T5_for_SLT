@@ -186,7 +186,7 @@ if __name__ == "__main__":
         if value is None:
             continue
         if param not in vars(t5_config):
-            print('f{param} not in SignT5Config. It may be ignored...}')
+            print(f'{param} not in SignT5Config. It may be ignored...')
         t5_config.__setattr__(param, value)
         if os.environ.get("LOCAL_RANK", "0") == "0" and args.verbose:
             print('Model config value updated by config - {}: {}'.format(param, value))
