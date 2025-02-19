@@ -123,6 +123,9 @@ def load_config(cfg_path):
     for param, value in cfg['TrainingArguments'].items():
         if value == 'none' or value == 'None':
             cfg['TrainingArguments'][param] = None
+    for param, value in cfg['ModelArguments'].items():
+        if value == 'none' or value == 'None':
+            cfg['ModelArguments'][param] = None
 
     # Add system job ID to config, if it exists
     system_cfg = ['PBS_JOBID', 'SLURM_JOB_ID']
@@ -175,19 +178,35 @@ if __name__ == "__main__":
         print('CUDA current device: {}'.format(torch.cuda.current_device()))
 
     # Initialize the custom model
-    t5_config = SignT5Config()
+    if model_config['model_path']:
+        t5_config = SignT5Config.from_pretrained(model_config['model_path'])
+    else:
+        t5_config = SignT5Config()
     for param, value in model_config.items():
+        if value is None:
+            continue
         if param not in vars(t5_config):
             print('f{param} not in SignT5Config. It may be ignored...}')
         t5_config.__setattr__(param, value)
+        if os.environ.get("LOCAL_RANK", "0") == "0" and args.verbose:
+            print('Model config value updated by config - {}: {}'.format(param, value))
 
-    if training_config['load_only_weights']:
-        assert training_config['resume_from_checkpoint'], "resume_from_checkpoint must be provided when running with load_only_weights"
-        model = T5ModelForSLT.from_pretrained(training_config['resume_from_checkpoint'], config=t5_config)
-        training_config['resume_from_checkpoint'] = None
-    else:
-        model = T5ModelForSLT(config=t5_config)
+    from transformers import T5ForConditionalGeneration, T5Config
+    # model_path = "/home/zeleznyt/Downloads/t5_1_1_base/pytorch_ckpt/"
+    # t5x_config = T5Config.from_pretrained(model_path)
+    # model = T5ForConditionalGeneration.from_pretrained(model_path, config=t5x_config)
+
+    # t5x_model_path = "/home/zeleznyt/Downloads/t5_1_1_base/pytorch_ckpt/"
+    # t5x_config = os.path.join(t5x_model_path, 'config.yaml')
+    model = T5ModelForSLT(t5_config)
+    # if training_config['load_only_weights']:
+    #     assert training_config['resume_from_checkpoint'], "resume_from_checkpoint must be provided when running with load_only_weights"
+    #     model = T5ModelForSLT.from_pretrained(training_config['resume_from_checkpoint'], config=t5_config)
+    #     training_config['resume_from_checkpoint'] = None
+    # else:
+    #     model = T5ModelForSLT(config=t5_config)
     for param in model.parameters(): param.data = param.data.contiguous()
+    # tokenizer = T5Tokenizer.from_pretrained(model.config.base_model_name, clean_up_tokenization_spaces=True)
     tokenizer = T5Tokenizer.from_pretrained(model.config.base_model_name, clean_up_tokenization_spaces=True)
 
     if os.environ.get("LOCAL_RANK", "0") == "0" and training_config['report_to'] == 'wandb': # TODO: remove redundant data

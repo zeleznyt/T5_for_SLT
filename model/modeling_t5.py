@@ -1,45 +1,39 @@
+import os.path
 import torch
 from torch import nn
-from transformers import (
-    PreTrainedModel,
-    AutoModelForSeq2SeqLM
-)
 from .configuration_t5 import SignT5Config
-from transformers.generation.utils import GenerationConfig, LogitsProcessorList, StoppingCriteriaList, GenerateOutput
 from typing import Optional, Union, List, Callable
 
-# Subclassing the T5 model
+from transformers import T5ForConditionalGeneration, GenerationConfig, PreTrainedModel
+import json
+
 class T5ModelForSLT(PreTrainedModel):
-
     config_class = SignT5Config
-
-    def __init__(self, config: SignT5Config):
+    def __init__(self, config: SignT5Config, generation_config: Optional[GenerationConfig] = None):
         super().__init__(config)
 
-        # Define a custom linear layer to apply to the input embeddings
-        self.model = AutoModelForSeq2SeqLM.from_pretrained(config.base_model_name)
+        if config.model_path:
+            model_name_or_path = config.model_path
+        else:
+            model_name_or_path = config.base_model_name
+        self.model = T5ForConditionalGeneration.from_pretrained(model_name_or_path, config=config)
+
+        # Custom linear layer to transform sign language input embeddings
         self.custom_linear = nn.Sequential(
             nn.Linear(config.sign_input_dim, self.model.config.d_model),
             nn.Dropout(config.hidden_dropout_prob),
             nn.GELU(),
         )
 
-        self.model.generation_config = GenerationConfig(
-            max_length=config.max_length,
-            num_beams=config.num_beams,
-            temperature=config.temperature,
-            top_k=config.top_k,
-            top_p=config.top_p,
-            repetition_penalty=config.repetition_penalty,
-            length_penalty=config.length_penalty,
-            no_repeat_ngram_size=config.no_repeat_ngram_size,
-            do_sample=config.do_sample,
-            early_stopping=config.early_stopping,
-            pad_token_id=self.model.config.pad_token_id,
-            bos_token_id=self.model.config.bos_token_id,
-            eos_token_id=self.model.config.eos_token_id,
-            decoder_start_token_id=self.model.config.pad_token_id,
-        )
+        # Apply custom generation config if provided
+        if generation_config:
+            self.model.generation_config = GenerationConfig(**generation_config) # TODO: check if works
+        elif config.model_path:
+            self.model.generation_config = GenerationConfig.from_pretrained(config.model_path)
+
+        if not self.model.config.decoder_start_token_id:
+            self.model.config.decoder_start_token_id = config.pad_token_id
+
 
     @torch.no_grad()
     def generate(

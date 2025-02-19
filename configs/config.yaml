@@ -1,5 +1,6 @@
 ModelArguments:
-  base_model_name: t5-small
+  base_model_name: google/t5-v1_1-base
+  model_path: /home/zeleznyt/Downloads/t5_1_1_base
   sign_input_dim: 208
   hidden_dropout_prob: 0.0
   num_beams: 4
@@ -22,7 +23,7 @@ TrainingArguments:
   resume_from_checkpoint: none
   load_only_weights: False
 #  Logging and saving
-  report_to: wandb
+  report_to: none
   logging_steps: 1
   eval_steps: 200
   save_steps: 100
