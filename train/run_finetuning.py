@@ -178,7 +178,7 @@ if __name__ == "__main__":
     t5_config = SignT5Config()
     for param, value in model_config.items():
         if param not in vars(t5_config):
-            print('f{param} not in SignT5Config. It may be ignored...}')
+            print(f'{param} not in SignT5Config. It may be ignored...')
         t5_config.__setattr__(param, value)
 
     if training_config['load_only_weights']:
