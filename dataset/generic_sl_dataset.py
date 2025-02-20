@@ -147,8 +147,10 @@ class SignFeatureDataset(Dataset):
             for input_type in INPUT_TYPES:
                 if visual_features[input_type] is not None:
                     visual_features[input_type] = visual_features[input_type][: self.max_sequence_length]
+                    seq_len = len(visual_features[input_type])
 
-        attention_mask = torch.ones(len(visual_features['pose']))
+        assert seq_len, "No modality provided or clip has no length!"
+        attention_mask = torch.ones(seq_len)
 
         return {
             "sign_inputs": {'pose': visual_features['pose'],
