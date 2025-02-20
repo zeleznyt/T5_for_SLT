@@ -133,6 +133,15 @@ def evaluate_model(model, dataloader, tokenizer, evaluation_config):
             labels.extend([[translation] for translation in decoded_labels])
     return predictions, labels
 
+
+def get_sign_input_dim(config):
+    sign_input_dim = 0
+    for mod in config['SignDataArguments']['visual_features']:
+        if config['SignDataArguments']['visual_features'][mod]['enable_input']:
+            sign_input_dim += config['SignModelArguments']['projectors'][mod]['dim']
+    return sign_input_dim
+
+
 def main():
     args = parse_args()
     if os.environ.get("LOCAL_RANK", "0") == "0" and args.verbose:
@@ -142,6 +151,7 @@ def main():
 
     evaluation_config = config['EvaluationArguments']
     model_config = config['ModelArguments']
+    model_config['sign_input_dim'] = get_sign_input_dim(config)
 
     # Initialize the custom model
     t5_config = SignT5Config()

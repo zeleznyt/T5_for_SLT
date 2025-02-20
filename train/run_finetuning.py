@@ -154,6 +154,14 @@ def update_config(cfg, args):
     return cfg
 
 
+def get_sign_input_dim(config):
+    sign_input_dim = 0
+    for mod in config['SignDataArguments']['visual_features']:
+        if config['SignDataArguments']['visual_features'][mod]['enable_input']:
+            sign_input_dim += config['SignModelArguments']['projectors'][mod]['dim']
+    return sign_input_dim
+
+
 if __name__ == "__main__":
     args = parse_args()
     if os.environ.get("LOCAL_RANK", "0") == "0" and args.verbose:
@@ -163,6 +171,7 @@ if __name__ == "__main__":
 
     training_config = config['TrainingArguments']
     model_config = config['ModelArguments']
+    model_config['sign_input_dim'] = get_sign_input_dim(config)
 
     set_seed(training_config['seed'])
 

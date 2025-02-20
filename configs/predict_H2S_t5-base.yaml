@@ -1,6 +1,5 @@
 ModelArguments:
   base_model_name: google-t5/t5-base
-  sign_input_dim: 208
 #  hidden_dropout_prob: 0.0
   num_beams: 5
   max_length: 128
