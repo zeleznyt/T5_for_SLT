@@ -151,10 +151,10 @@ class SignFeatureDataset(Dataset):
         attention_mask = torch.ones(len(visual_features['pose']))
 
         return {
-            "sign_inputs": visual_features['pose'],
-            "sign_inputs_mae": visual_features['mae'],
-            "sign_inputs_dino": visual_features['dino'],
-            "sign_inputs_sign2vec": visual_features['sign2vec'],
+            "sign_inputs": {'pose': visual_features['pose'],
+                            'mae': visual_features['mae'],
+                            'dino': visual_features['dino'],
+                            'sign2vec': visual_features['sign2vec']},
             "sentence": translation,
             "labels": labels,
             "attention_mask": attention_mask,

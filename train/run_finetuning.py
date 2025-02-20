@@ -38,6 +38,9 @@ def init_wandb(config, wandb_api_key=None):
         config=config,
     )
     wandb.run.name = '{}-{}'.format(wandb.run.name, config['TrainingArguments']['model_name'])
+    for modality, value in config['SignDataArguments']['visual_features'].items():
+        if value['enable_input']:
+            wandb.run.tags = wandb.run.tags + (modality,)
 
     return wandb
 
@@ -195,27 +198,53 @@ if __name__ == "__main__":
 
     # Add collate_fn to DataLoader
     def collate_fn(batch):
-        # Add padding to the inputs 
-        # "inputs" must be 250 frames long
-        # "attention_mask" must be 250 frames long
-        # "labels" must be 128 tokens long
+        # Add padding to the inputs
+        # YT-ASL paper:
+            # "inputs" must be 250 frames long
+            # "attention_mask" must be 250 frames long
+            # "labels" must be 128 tokens long
+        max_seq_len = training_config['max_sequence_length']
+        max_token_len = training_config['max_token_length']
+
+        # List of enabled modalities (based on config)
+        modalities = [
+            mod for mod in config['SignDataArguments']['visual_features']
+            if config['SignDataArguments']['visual_features'][mod]['enable_input']
+        ]
+        # Get the dimensionality for enabled modalities
+        modality_dim = {
+            mod: config['SignModelArguments']['projectors'][mod]['dim']
+            for mod in modalities
+        }
+
+        # Process each enabled modality
+        sign_inputs = [
+            torch.stack([
+                torch.cat((sample["sign_inputs"][mod],
+                           torch.zeros(max_seq_len - sample["sign_inputs"][mod].shape[0], modality_dim[mod])), dim=0)
+                for sample in batch
+            ])
+            for mod in modalities
+        ]
+
+        # Process attention mask
+        attention_mask = torch.stack([
+            torch.cat((sample["attention_mask"], torch.zeros(max_seq_len - sample["attention_mask"].shape[0])), dim=0)
+            if sample["attention_mask"].shape[0] < max_seq_len else sample["attention_mask"]
+            for sample in batch
+        ])
+
+        # Process labels
+        labels = torch.stack([
+            torch.cat((sample["labels"].squeeze(0), torch.zeros(max_token_len - sample["labels"].shape[0])), dim=0)
+            if sample["labels"].shape[0] < max_token_len else sample["labels"]
+            for sample in batch
+        ]).squeeze(0).to(torch.long)
+
         return {
-            "sign_inputs": torch.stack([
-                torch.cat((sample["sign_inputs"], torch.zeros(training_config['max_sequence_length'] - sample["sign_inputs"].shape[0], config['SignModelArguments']['projectors']['pose']['dim'])), dim=0)
-                for sample in batch
-            ]),
-            "attention_mask": torch.stack([
-                torch.cat((sample["attention_mask"], torch.zeros(training_config['max_sequence_length'] - sample["attention_mask"].shape[0])), dim=0)
-                if sample["attention_mask"].shape[0] < training_config['max_sequence_length']
-                else sample["attention_mask"]
-                for sample in batch
-            ]),
-            "labels": torch.stack([
-                torch.cat((sample["labels"].squeeze(0), torch.zeros(training_config['max_token_length'] - sample["labels"].shape[0])), dim=0)
-                if sample["labels"].shape[0] < training_config['max_token_length']
-                else sample["labels"]
-                for sample in batch
-            ]).squeeze(0).to(torch.long),
+            "sign_inputs": torch.cat(sign_inputs, dim=-1),
+            "attention_mask": attention_mask,
+            "labels": labels
         }
 
     train_dataset = DatasetForSLT(tokenizer= tokenizer,
@@ -244,7 +273,10 @@ if __name__ == "__main__":
         sample = train_dataset[0]
 
         print(f"Sign inputs:")
-        print(sample["sign_inputs"])
+        for modality in sample["sign_inputs"]:
+            if sample["sign_inputs"][modality] is not None:
+                print(f'{modality}:')
+                print(sample["sign_inputs"][modality])
         print(f"Attention mask:")
         print(sample["attention_mask"])
         print(f"Labels:")
