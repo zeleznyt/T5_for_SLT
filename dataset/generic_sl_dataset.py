@@ -25,6 +25,7 @@ class SignFeatureDataset(Dataset):
         max_token_length=None,
         max_sequence_length=None,
         max_samples=None,
+        pose_dataset=None,
     ):
         """
 
@@ -43,6 +44,7 @@ class SignFeatureDataset(Dataset):
         self.tokenizer = tokenizer
         self.split = split
         self.max_samples = max_samples
+        self.pose_dataset = pose_dataset
         data_dir = sign_data_args['data_dir']
 
         assert self.split in ['train', 'dev', 'test'], 'split must be in ["train", "dev", "test"]'
@@ -112,13 +114,17 @@ class SignFeatureDataset(Dataset):
         # Get the visual features
         visual_features = {}
         for input_type in INPUT_TYPES:
-            if self.h5_data[input_type] is not None:
-                shard = self.h5shard[self.split][input_type][video_id]
-                vf = torch.tensor(np.array(self.h5_data[input_type][shard][video_id][clip_name]))
-
-                visual_features[input_type] = vf
+            if input_type == 'pose' and self.pose_dataset is not None:
+                    vf = torch.tensor(self.pose_dataset.get_clip_data(clip_name))
+                    visual_features[input_type] = vf
             else:
-                visual_features[input_type] = None
+                if self.h5_data[input_type] is not None:
+                    shard = self.h5shard[self.split][input_type][video_id]
+                    vf = torch.tensor(np.array(self.h5_data[input_type][shard][video_id][clip_name]))
+
+                    visual_features[input_type] = vf
+                else:
+                    visual_features[input_type] = None
 
         translation = self.annotation[video_id][clip_name]['translation']
 

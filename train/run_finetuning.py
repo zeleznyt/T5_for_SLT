@@ -13,6 +13,7 @@ from transformers import (
 from model.configuration_t5 import SignT5Config
 from model.modeling_t5 import T5ModelForSLT
 from utils.translation import postprocess_text
+from utils.keypoint_dataset import KeypointDatasetJSON
 from dataset.generic_sl_dataset import SignFeatureDataset as DatasetForSLT
 
 from dotenv import load_dotenv
@@ -256,6 +257,21 @@ if __name__ == "__main__":
             "labels": labels
         }
 
+    raw_pose_data_path = config['SignDataArguments']['visual_features']['pose']['normalization']['json_dir']
+    if os.path.isdir(raw_pose_data_path):
+        pose_dataset = KeypointDatasetJSON(json_folder=raw_pose_data_path,
+                                           kp_normalization=(
+                                               "global-pose_landmarks",
+                                               "local-right_hand_landmarks",
+                                               "local-left_hand_landmarks",
+                                               "local-face_landmarks",),
+                                           kp_normalization_method=config['SignDataArguments']['visual_features']['pose']['normalization']['normalization_method'],
+                                           missing_values=0
+                                           )
+        print('Raw pose data path: {}'.format(raw_pose_data_path))
+    else:
+        pose_dataset = None
+        print('Raw poses not found in {}'.format(raw_pose_data_path))
     train_dataset = DatasetForSLT(tokenizer= tokenizer,
                                 sign_data_args=config['SignDataArguments'],
                                 split='train',
@@ -263,6 +279,7 @@ if __name__ == "__main__":
                                 max_token_length=training_config['max_token_length'],
                                 max_sequence_length=training_config['max_sequence_length'],
                                 max_samples=training_config['max_train_samples'],
+                                pose_dataset=pose_dataset,
                                 )
 
     val_dataset = DatasetForSLT(tokenizer= tokenizer,
@@ -272,6 +289,7 @@ if __name__ == "__main__":
                                 max_token_length=training_config['max_token_length'],
                                 max_sequence_length=training_config['max_sequence_length'],
                                 max_samples=training_config['max_val_samples'],
+                                pose_dataset=pose_dataset,
                                 )
 
     if args.verbose:

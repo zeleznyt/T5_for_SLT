@@ -69,6 +69,9 @@ SignDataArguments:
       enable_input: True
       train: YouTubeASL.keypoints.train.json
       dev: YouTubeASL.keypoints.dev.json
+      normalization:
+        json_dir: raw_keypoints/
+        normalization_method: sign_space
 
 SignModelArguments:
   projectors:
