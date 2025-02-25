@@ -115,7 +115,7 @@ class SignFeatureDataset(Dataset):
         visual_features = {}
         for input_type in INPUT_TYPES:
             if input_type == 'pose' and self.pose_dataset is not None:
-                    vf = torch.tensor(self.pose_dataset.get_clip_data(clip_name))
+                    vf = torch.tensor(self.pose_dataset.get_clip_data(clip_name)).float()
                     visual_features[input_type] = vf
             else:
                 if self.h5_data[input_type] is not None:
