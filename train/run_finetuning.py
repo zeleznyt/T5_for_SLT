@@ -25,17 +25,28 @@ import argparse
 def init_wandb(config, wandb_api_key=None):
     if wandb_api_key:
         if os.path.exists(wandb_api_key):
-            with open(wandb_api_key, "r") as f:
-                os.environ["WANDB_API_KEY"] = f.read().strip()
+            with open(wandb_api_key, 'r') as f:
+                os.environ['WANDB_API_KEY'] = f.read().strip()
         else:
-            os.environ["WANDB_API_KEY"] = wandb_api_key
+            os.environ['WANDB_API_KEY'] = wandb_api_key
 
     wandb.login(
-        key=os.getenv("WANDB_API_KEY")
+        key=os.getenv('WANDB_API_KEY')
     )
+
+    if 'WANDB_PROJECT' in os.environ:
+        project_name = os.environ['WANDB_PROJECT']
+        print('Setting up wandb project name from environment variables: {}'.format(project_name))
+    elif 'project_name' in config['TrainingArguments']:
+        project_name = config['TrainingArguments']['project_name']
+        print('Setting up wandb project name from config: {}'.format(project_name))
+    else:
+        project_name = None
+        print('Wandb project name not found in environment variables or config. Setting to None.')
+
     wandb.init(
-        project=config['TrainingArguments']["project_name"],
-        tags=[config["ModelArguments"]["base_model_name"]],
+        project=project_name,
+        tags=[config['ModelArguments']['base_model_name']],
         config=config,
     )
     wandb.run.name = '{}-{}'.format(wandb.run.name, config['TrainingArguments']['model_name'])
