@@ -105,6 +105,7 @@ def parse_args():
     parser.add_argument("--learning_rate", type=float, default=None)
     parser.add_argument("--lr_scheduler_type", type=str, default=None)
     parser.add_argument("--max_training_steps", type=int, default=None)
+    parser.add_argument("--warmup_steps", type=int, default=None)
     parser.add_argument("--weight_decay", type=float, default=None)
     parser.add_argument("--fp16", type=bool, default=None)
 
@@ -184,6 +185,8 @@ if __name__ == "__main__":
     training_config = config['TrainingArguments']
     model_config = config['ModelArguments']
     model_config['sign_input_dim'] = get_sign_input_dim(config)
+    if training_config['warmup_steps'] > 0 and 'warmup' not in training_config['lr_scheduler_type']:
+        print('Warmup steps are set by config but lr_scheduler_type does not support it.')
 
     set_seed(training_config['seed'])
 
@@ -379,6 +382,7 @@ if __name__ == "__main__":
         logging_steps=training_config['logging_steps'],
         num_train_epochs=num_train_epochs,
         # max_steps=args.max_training_steps,
+        warmup_steps=training_config['warmup_steps'],
         optim="adafactor",
         learning_rate=training_config['learning_rate'],
         lr_scheduler_type=training_config['lr_scheduler_type'],

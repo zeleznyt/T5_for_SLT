@@ -32,10 +32,11 @@ TrainingArguments:
 #  Training
   per_device_train_batch_size: 2
   per_device_eval_batch_size: 2
-  gradient_accumulation_steps: 4
+  gradient_accumulation_steps: 1
   learning_rate: 0.001
   lr_scheduler_type: constant
   max_training_steps: 20000
+  warmup_steps: 5000
   weight_decay: 0.0
   fp16: False
 #  Data processing
