@@ -34,7 +34,7 @@ def init_wandb(config, wandb_api_key=None):
         key=os.getenv('WANDB_API_KEY')
     )
 
-    if 'WANDB_PROJECT' in os.environ:
+    if 'WANDB_PROJECT' in os.environ.keys():
         project_name = os.environ['WANDB_PROJECT']
         print('Setting up wandb project name from environment variables: {}'.format(project_name))
     elif 'project_name' in config['TrainingArguments']:
