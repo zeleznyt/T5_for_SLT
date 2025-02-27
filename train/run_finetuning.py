@@ -113,6 +113,7 @@ def parse_args():
     parser.add_argument("--max_sequence_length", type=int, default=None)
     parser.add_argument("--max_token_length", type=int, default=None)
     parser.add_argument("--skip_frames", default=None)
+    parser.add_argument("--float32", default=None)
 
     # Evaluation arguments
     parser.add_argument("--num_beams", type=int, default=None)
@@ -294,6 +295,7 @@ if __name__ == "__main__":
                                 max_sequence_length=training_config['max_sequence_length'],
                                 max_samples=training_config['max_train_samples'],
                                 pose_dataset=pose_dataset,
+                                float32=training_config['float32']
                                 )
 
     val_dataset = DatasetForSLT(tokenizer= tokenizer,
@@ -304,6 +306,7 @@ if __name__ == "__main__":
                                 max_sequence_length=training_config['max_sequence_length'],
                                 max_samples=training_config['max_val_samples'],
                                 pose_dataset=pose_dataset,
+                                float32=training_config['float32']
                                 )
 
     if args.verbose:

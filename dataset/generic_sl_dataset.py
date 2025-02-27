@@ -26,6 +26,7 @@ class SignFeatureDataset(Dataset):
         max_sequence_length=None,
         max_samples=None,
         pose_dataset=None,
+        float32=False,
     ):
         """
 
@@ -45,6 +46,7 @@ class SignFeatureDataset(Dataset):
         self.split = split
         self.max_samples = max_samples
         self.pose_dataset = pose_dataset
+        self.float32 = float32
         data_dir = sign_data_args['data_dir']
 
         assert self.split in ['train', 'dev', 'test'], 'split must be in ["train", "dev", "test"]'
@@ -115,7 +117,9 @@ class SignFeatureDataset(Dataset):
         visual_features = {}
         for input_type in INPUT_TYPES:
             if input_type == 'pose' and self.pose_dataset is not None:
-                    clip_data = self.pose_dataset.get_clip_data(clip_name).astype(np.dtype('float16'))
+                    clip_data = self.pose_dataset.get_clip_data(clip_name)
+                    if not self.float32:
+                        clip_data = clip_data.astype(np.dtype('float16'))
                     vf = torch.tensor(clip_data).float()
                     visual_features[input_type] = vf
             else:
