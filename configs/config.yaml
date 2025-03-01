@@ -85,3 +85,11 @@ SignModelArguments:
       dim: 1152
     pose:
       dim: 208
+
+AugmentationConfig:
+  - { "name": "rotate", "angle": [-5, 5], "p": 1 }
+  - { "name": "shear", "angle_x": [-5, 5], "angle_y": [-5, 5], "p": 1 }
+  - { "name": "perspective", "portion": [-0.2, 0.2], "reference_size": 512, "p": 1 }
+  - { "name": "rotate_hand", "angle": [-10, 10], "rotation_center": "shoulder", "p": 1 }
+  - { "name": "rotate_hand", "angle": [-10, 10], "rotation_center": "elbow", "p": 1 }
+  - { "name": "noise", "std": 2, "p": 1 }

@@ -273,6 +273,7 @@ if __name__ == "__main__":
         }
 
     raw_pose_data_path = config['SignDataArguments']['visual_features']['pose']['normalization']['json_dir']
+    augmentation_configs = config['AugmentationConfig']
     if os.path.isdir(raw_pose_data_path):
         pose_dataset = KeypointDatasetJSON(json_folder=raw_pose_data_path,
                                            kp_normalization=(
@@ -281,7 +282,8 @@ if __name__ == "__main__":
                                                "local-left_hand_landmarks",
                                                "local-face_landmarks",),
                                            kp_normalization_method=config['SignDataArguments']['visual_features']['pose']['normalization']['normalization_method'],
-                                           missing_values=0
+                                           missing_values=0,
+                                           augmentation_configs=augmentation_configs,
                                            )
         print('Raw pose data path: {}'.format(raw_pose_data_path))
     else:
