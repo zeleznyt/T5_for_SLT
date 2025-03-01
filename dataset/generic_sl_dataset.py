@@ -48,7 +48,7 @@ class SignFeatureDataset(Dataset):
         self.max_samples = max_samples
         self.pose_dataset = pose_dataset
         self.float32 = False if float32 in ["False", "false", False] else True
-        self.decimal_points = decimal_points
+        self.decimal_points = int(decimal_points)
         data_dir = sign_data_args['data_dir']
 
         assert self.split in ['train', 'dev', 'test'], 'split must be in ["train", "dev", "test"]'
