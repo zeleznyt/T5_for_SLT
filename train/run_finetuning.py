@@ -274,7 +274,10 @@ if __name__ == "__main__":
         }
 
     raw_pose_data_path = config['SignDataArguments']['visual_features']['pose']['normalization']['json_dir']
-    augmentation_configs = config['AugmentationConfig']
+    if 'AugmentationConfig' in config:
+        augmentation_configs = config['AugmentationConfig']
+    else:
+        augmentation_configs = []
     if os.path.isdir(raw_pose_data_path):
         pose_dataset = KeypointDatasetJSON(json_folder=raw_pose_data_path,
                                            kp_normalization=(
