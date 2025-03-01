@@ -27,6 +27,7 @@ class SignFeatureDataset(Dataset):
         max_samples=None,
         pose_dataset=None,
         float32=False,
+        decimal_points=-1,
     ):
         """
 
@@ -47,6 +48,7 @@ class SignFeatureDataset(Dataset):
         self.max_samples = max_samples
         self.pose_dataset = pose_dataset
         self.float32 = False if float32 in ["False", "false", False] else True
+        self.decimal_points = decimal_points
         data_dir = sign_data_args['data_dir']
 
         assert self.split in ['train', 'dev', 'test'], 'split must be in ["train", "dev", "test"]'
@@ -120,6 +122,8 @@ class SignFeatureDataset(Dataset):
                     clip_data = self.pose_dataset.get_clip_data(clip_name)
                     if not self.float32:
                         clip_data = clip_data.astype(np.dtype('float16'))
+                    if self.decimal_points > 0:
+                        clip_data = np.round(clip_data, self.decimal_points)
                     vf = torch.tensor(clip_data).float()
                     visual_features[input_type] = vf
             else:

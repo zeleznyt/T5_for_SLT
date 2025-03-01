@@ -44,6 +44,7 @@ TrainingArguments:
   max_token_length: 128
   skip_frames: False
   float32: False
+  decimal_points: -1
 #  Evaluation
   num_beams: 5
   early_stopping: False
