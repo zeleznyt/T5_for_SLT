@@ -115,6 +115,7 @@ def parse_args():
     parser.add_argument("--skip_frames", default=None)
     parser.add_argument("--float32", default=None)
     parser.add_argument("--decimal_points", default=None)
+    parser.add_argument("--load_from_raw", default=None)
 
     # Evaluation arguments
     parser.add_argument("--num_beams", type=int, default=None)
