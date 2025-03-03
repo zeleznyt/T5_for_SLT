@@ -45,6 +45,7 @@ TrainingArguments:
   skip_frames: False
   float32: False
   decimal_points: -1
+  load_from_raw: False
 #  Evaluation
   num_beams: 5
   early_stopping: False

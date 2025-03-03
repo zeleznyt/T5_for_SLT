@@ -288,6 +288,7 @@ if __name__ == "__main__":
                                            kp_normalization_method=config['SignDataArguments']['visual_features']['pose']['normalization']['normalization_method'],
                                            missing_values=0,
                                            augmentation_configs=augmentation_configs,
+                                           load_from_raw=training_config['load_from_raw'],
                                            )
         print('Raw pose data path: {}'.format(raw_pose_data_path))
     else:

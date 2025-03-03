@@ -64,11 +64,12 @@ class KeypointDatasetJSON(Dataset):
             data_key: str = "cropped_keypoints",
             missing_values: int = 0,
             augmentation_configs: list = [],
-            augmentation_per_frame: bool = False
+            augmentation_per_frame: bool = False,
+            load_from_raw=True,
     ):
         """
         Args:
-            json_folder: Folder containing raw keypoints in json files.
+            json_folder: Folder containing raw keypoints in json files or data_key folders containing json files (see load_from_raw).
             clip_to_video: A mapping from clip names to video names.
                            If None each json file will be considered as separate clip.
             kp_normalization: Order and type of normalization tha will be used for individual keypoint groups.
@@ -86,8 +87,14 @@ class KeypointDatasetJSON(Dataset):
             augmentation_configs: List of augmentation configurations.
             augmentation_per_frame: If True, apply augmentation to each frame separately,
                                     else all frames in clip will be augmented in same way.
+            load_from_raw:  If True, load data from raw json files in json_folder.
+                            If False, load data from folder named by data_key in the root directory json_folder.
         """
-        json_list = get_json_files(json_folder)
+        load_from_raw = False if load_from_raw in ["False", "false", False] else True
+        if load_from_raw:
+            json_list = get_json_files(json_folder)
+        else:
+            json_list = get_json_files(os.path.join(json_folder, data_key))
         self.video_to_files = {}
         for idx, path in enumerate(json_list):
             name = os.path.basename(path)
