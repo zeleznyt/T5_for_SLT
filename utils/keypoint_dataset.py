@@ -90,11 +90,10 @@ class KeypointDatasetJSON(Dataset):
             load_from_raw:  If True, load data from raw json files in json_folder.
                             If False, load data from folder named by data_key in the root directory json_folder.
         """
-        load_from_raw = False if load_from_raw in ["False", "false", False] else True
-        if load_from_raw:
-            json_list = get_json_files(json_folder)
-        else:
+        if load_from_raw in ["False", "false", False]:
             json_list = get_json_files(os.path.join(json_folder, data_key))
+        else:
+            json_list = get_json_files(json_folder)
         self.video_to_files = {}
         for idx, path in enumerate(json_list):
             name = os.path.basename(path)
