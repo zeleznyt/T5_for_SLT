@@ -288,6 +288,7 @@ if __name__ == "__main__":
                                                "local-left_hand_landmarks",
                                                "local-face_landmarks",),
                                            kp_normalization_method=pose_config['normalization']['normalization_method'],
+                                           data_key=pose_config['normalization']['data_key'],
                                            missing_values=0,
                                            augmentation_configs=augmentation_configs,
                                            load_from_raw=training_config['load_from_raw'],

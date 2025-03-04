@@ -77,6 +77,7 @@ SignDataArguments:
         train_json_dir: raw_keypoints/
         val_json_dir: raw_keypoints/
         normalization_method: sign_space
+        data_key: cropped_keypoints
       augmentation_type: none
 
 SignModelArguments:
