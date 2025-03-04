@@ -182,7 +182,7 @@ def get_sign_input_dim(config):
 if __name__ == "__main__":
     args = parse_args()
     if os.environ.get("LOCAL_RANK", "0") == "0" and args.verbose:
-        print('Loading config...')
+        print('Loading config from {}...'.format(args.config_file))
     config = load_config(args.config_file)
     config = update_config(config, args)
 
