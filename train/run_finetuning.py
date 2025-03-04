@@ -14,6 +14,7 @@ from model.configuration_t5 import SignT5Config
 from model.modeling_t5 import T5ModelForSLT
 from utils.translation import postprocess_text
 from utils.keypoint_dataset import KeypointDatasetJSON
+from utils.augmentation_config import get_augmentations
 from dataset.generic_sl_dataset import SignFeatureDataset as DatasetForSLT
 
 from dotenv import load_dotenv
@@ -274,12 +275,11 @@ if __name__ == "__main__":
             "labels": labels
         }
 
-    train_raw_pose_data_path = config['SignDataArguments']['visual_features']['pose']['normalization']['train_json_dir']
-    val_raw_pose_data_path = config['SignDataArguments']['visual_features']['pose']['normalization']['val_json_dir']
-    if 'AugmentationConfig' in config:
-        augmentation_configs = config['AugmentationConfig']
-    else:
-        augmentation_configs = []
+    pose_config = config['SignDataArguments']['visual_features']['pose']
+    train_raw_pose_data_path = pose_config['normalization']['train_json_dir']
+    val_raw_pose_data_path = pose_config['normalization']['val_json_dir']
+
+    augmentation_configs = get_augmentations(pose_config['augmentation_type'])
     if os.path.isdir(train_raw_pose_data_path):
         train_pose_dataset = KeypointDatasetJSON(json_folder=train_raw_pose_data_path,
                                            kp_normalization=(
@@ -287,7 +287,7 @@ if __name__ == "__main__":
                                                "local-right_hand_landmarks",
                                                "local-left_hand_landmarks",
                                                "local-face_landmarks",),
-                                           kp_normalization_method=config['SignDataArguments']['visual_features']['pose']['normalization']['normalization_method'],
+                                           kp_normalization_method=pose_config['normalization']['normalization_method'],
                                            missing_values=0,
                                            augmentation_configs=augmentation_configs,
                                            load_from_raw=training_config['load_from_raw'],
@@ -304,9 +304,9 @@ if __name__ == "__main__":
                                                "local-right_hand_landmarks",
                                                "local-left_hand_landmarks",
                                                "local-face_landmarks",),
-                                           kp_normalization_method=config['SignDataArguments']['visual_features']['pose']['normalization']['normalization_method'],
+                                           kp_normalization_method=pose_config['normalization']['normalization_method'],
                                            missing_values=0,
-                                           augmentation_configs=augmentation_configs,
+                                           augmentation_configs=[],
                                            load_from_raw=training_config['load_from_raw'],
                                            )
         print('Train raw pose data path: {}'.format(val_raw_pose_data_path))
