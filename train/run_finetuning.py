@@ -274,13 +274,14 @@ if __name__ == "__main__":
             "labels": labels
         }
 
-    raw_pose_data_path = config['SignDataArguments']['visual_features']['pose']['normalization']['json_dir']
+    train_raw_pose_data_path = config['SignDataArguments']['visual_features']['pose']['normalization']['train_json_dir']
+    val_raw_pose_data_path = config['SignDataArguments']['visual_features']['pose']['normalization']['val_json_dir']
     if 'AugmentationConfig' in config:
         augmentation_configs = config['AugmentationConfig']
     else:
         augmentation_configs = []
-    if os.path.isdir(raw_pose_data_path):
-        pose_dataset = KeypointDatasetJSON(json_folder=raw_pose_data_path,
+    if os.path.isdir(train_raw_pose_data_path):
+        train_pose_dataset = KeypointDatasetJSON(json_folder=train_raw_pose_data_path,
                                            kp_normalization=(
                                                "global-pose_landmarks",
                                                "local-right_hand_landmarks",
@@ -291,10 +292,23 @@ if __name__ == "__main__":
                                            augmentation_configs=augmentation_configs,
                                            load_from_raw=training_config['load_from_raw'],
                                            )
-        print('Raw pose data path: {}'.format(raw_pose_data_path))
+        val_pose_dataset = KeypointDatasetJSON(json_folder=val_raw_pose_data_path,
+                                           kp_normalization=(
+                                               "global-pose_landmarks",
+                                               "local-right_hand_landmarks",
+                                               "local-left_hand_landmarks",
+                                               "local-face_landmarks",),
+                                           kp_normalization_method=config['SignDataArguments']['visual_features']['pose']['normalization']['normalization_method'],
+                                           missing_values=0,
+                                           augmentation_configs=augmentation_configs,
+                                           load_from_raw=training_config['load_from_raw'],
+                                           )
+        print('Train raw pose data path: {}'.format(train_raw_pose_data_path))
+        print('Train raw pose data path: {}'.format(val_raw_pose_data_path))
     else:
-        pose_dataset = None
-        print('Raw poses not found in {}'.format(raw_pose_data_path))
+        train_pose_dataset = None
+        val_pose_dataset = None
+        print('Raw poses not found in {} or {}'.format(train_raw_pose_data_path, val_raw_pose_data_path))
     train_dataset = DatasetForSLT(tokenizer= tokenizer,
                                 sign_data_args=config['SignDataArguments'],
                                 split='train',
@@ -302,7 +316,7 @@ if __name__ == "__main__":
                                 max_token_length=training_config['max_token_length'],
                                 max_sequence_length=training_config['max_sequence_length'],
                                 max_samples=training_config['max_train_samples'],
-                                pose_dataset=pose_dataset,
+                                pose_dataset=train_pose_dataset,
                                 float32=training_config['float32'],
                                 decimal_points=training_config['decimal_points'],
                                 )
@@ -314,7 +328,7 @@ if __name__ == "__main__":
                                 max_token_length=training_config['max_token_length'],
                                 max_sequence_length=training_config['max_sequence_length'],
                                 max_samples=training_config['max_val_samples'],
-                                pose_dataset=pose_dataset,
+                                pose_dataset=val_pose_dataset,
                                 float32=training_config['float32'],
                                 decimal_points=training_config['decimal_points'],
                                 )
