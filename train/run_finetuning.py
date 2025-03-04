@@ -292,6 +292,12 @@ if __name__ == "__main__":
                                            augmentation_configs=augmentation_configs,
                                            load_from_raw=training_config['load_from_raw'],
                                            )
+        print('Train raw pose data path: {}'.format(train_raw_pose_data_path))
+    else:
+        train_pose_dataset = None
+        val_pose_dataset = None
+        print('Raw poses not found in {}'.format(train_raw_pose_data_path))
+    if os.path.isdir(val_raw_pose_data_path):
         val_pose_dataset = KeypointDatasetJSON(json_folder=val_raw_pose_data_path,
                                            kp_normalization=(
                                                "global-pose_landmarks",
@@ -303,12 +309,10 @@ if __name__ == "__main__":
                                            augmentation_configs=augmentation_configs,
                                            load_from_raw=training_config['load_from_raw'],
                                            )
-        print('Train raw pose data path: {}'.format(train_raw_pose_data_path))
         print('Train raw pose data path: {}'.format(val_raw_pose_data_path))
     else:
-        train_pose_dataset = None
         val_pose_dataset = None
-        print('Raw poses not found in {} or {}'.format(train_raw_pose_data_path, val_raw_pose_data_path))
+        print('Raw poses not found in {}'.format(val_raw_pose_data_path))
     train_dataset = DatasetForSLT(tokenizer= tokenizer,
                                 sign_data_args=config['SignDataArguments'],
                                 split='train',
