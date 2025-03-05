@@ -79,6 +79,8 @@ SignDataArguments:
         normalization_method: sign_space
         data_key: cropped_keypoints
       augmentation_type: none
+      missing_values: -1
+      interpolate: -1
 
 SignModelArguments:
   projectors:

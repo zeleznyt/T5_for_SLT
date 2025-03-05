@@ -289,9 +289,10 @@ if __name__ == "__main__":
                                                "local-face_landmarks",),
                                            kp_normalization_method=pose_config['normalization']['normalization_method'],
                                            data_key=pose_config['normalization']['data_key'],
-                                           missing_values=0,
+                                           missing_values=pose_config['missing_values'],
                                            augmentation_configs=augmentation_configs,
                                            load_from_raw=training_config['load_from_raw'],
+                                           interpolate=pose_config['interpolate'],
                                            )
         print('Train raw pose data path: {}'.format(train_raw_pose_data_path))
     else:
@@ -306,9 +307,10 @@ if __name__ == "__main__":
                                                "local-left_hand_landmarks",
                                                "local-face_landmarks",),
                                            kp_normalization_method=pose_config['normalization']['normalization_method'],
-                                           missing_values=0,
+                                           missing_values=pose_config['missing_values'],
                                            augmentation_configs=[],
                                            load_from_raw=training_config['load_from_raw'],
+                                           interpolate=pose_config['interpolate'],
                                            )
         print('Train raw pose data path: {}'.format(val_raw_pose_data_path))
     else:
