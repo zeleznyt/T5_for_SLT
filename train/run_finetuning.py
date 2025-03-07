@@ -22,6 +22,7 @@ load_dotenv()
 from tqdm import tqdm
 import yaml
 import argparse
+import random
 
 def init_wandb(config, wandb_api_key=None):
     if wandb_api_key:
@@ -59,11 +60,12 @@ def init_wandb(config, wandb_api_key=None):
 
 
 def set_seed(seed_value=42):
-    # random.seed(seed_value)  # Python random
+    random.seed(seed_value)  # Python random
     np.random.seed(seed_value)  # NumPy random
     torch.manual_seed(seed_value)  # PyTorch (CPU & CUDA)
     torch.cuda.manual_seed(seed_value)  # GPU-specific seed
     torch.cuda.manual_seed_all(seed_value)  # Multi-GPU safe
+    torch.backends.cudnn.deterministic = True
 
 
 def parse_args():
