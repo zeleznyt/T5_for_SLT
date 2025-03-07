@@ -25,7 +25,9 @@ class T5ModelForSLT(PreTrainedModel):
         )
 
         # Initialize weights
-        self._init_weights()
+        for layer in self.custom_linear:
+            if isinstance(layer, nn.Linear):
+                nn.init.xavier_uniform_(layer.weight)  # Xavier init (matches T5 embeddings)
 
         self.model.generation_config = GenerationConfig(
             max_length=config.max_length,
@@ -43,11 +45,6 @@ class T5ModelForSLT(PreTrainedModel):
             eos_token_id=self.model.config.eos_token_id,
             decoder_start_token_id=self.model.config.pad_token_id,
         )
-
-    def _init_weights(self):
-        for layer in self.custom_linear:
-            if isinstance(layer, nn.Linear):
-                nn.init.xavier_uniform_(layer.weight)  # Xavier init (matches T5 embeddings)
 
     @torch.no_grad()
     def generate(
