@@ -439,6 +439,7 @@ if __name__ == "__main__":
         save_steps=training_config['save_steps'],
         generation_config=model.base_model.generation_config,
         ddp_find_unused_parameters=False,
+        seed=training_config['seed'],
     )
 
     if os.environ.get("LOCAL_RANK", "0") == "0" and training_config['report_to'] == 'wandb': # TODO: remove redundant data
