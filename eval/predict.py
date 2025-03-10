@@ -240,6 +240,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
 
+    print("Evaluating...")
     predictions, labels = evaluate_model(model, dataloader, tokenizer, evaluation_config)
 
     # Postprocess predictions and references
