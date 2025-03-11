@@ -299,7 +299,6 @@ if __name__ == "__main__":
         print('Train raw pose data path: {}'.format(train_raw_pose_data_path))
     else:
         train_pose_dataset = None
-        val_pose_dataset = None
         print('Raw poses not found in {}'.format(train_raw_pose_data_path))
     if os.path.isdir(val_raw_pose_data_path):
         val_pose_dataset = KeypointDatasetJSON(json_folder=val_raw_pose_data_path,
