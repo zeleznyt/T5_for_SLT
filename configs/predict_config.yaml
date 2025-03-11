@@ -20,8 +20,11 @@ EvaluationArguments:
   split: test
   max_sequence_length: 250
   max_token_length: 128
+  float32: False
+  decimal_points: -1
+  load_from_raw: False
 #  Generation parameters
-  model_dir: /path/to/model.safetensors
+  model_dir: /media/zeleznyt/DATA/T5_for_SLT/results/T5_YTASL_pretrain/checkpoint-20
   batch_size: 2
 #  Debugging
   max_val_samples: none
@@ -45,6 +48,13 @@ SignDataArguments:
     pose:
       enable_input: True
       test: YouTubeASL.keypoints.dev.json
+      normalization:
+        test_json_dir: raw_keypoints/
+        normalization_method: ''
+        data_key: cropped_keypoints
+      augmentation_type: none
+      missing_values: null
+      interpolate: -1
 
 SignModelArguments:
   projectors:

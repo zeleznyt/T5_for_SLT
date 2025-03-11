@@ -12,6 +12,7 @@ from utils.translation import postprocess_text
 import evaluate
 import yaml
 from dataset.generic_sl_dataset import SignFeatureDataset as DatasetForSLT
+from utils.keypoint_dataset import KeypointDatasetJSON
 
 load_dotenv()
 
@@ -216,6 +217,28 @@ def main():
             "labels": labels
         }
     # Prepare dataset
+    pose_config = config['SignDataArguments']['visual_features']['pose']
+    test_raw_pose_data_path = pose_config['normalization']['test_json_dir']
+
+    if os.path.isdir(test_raw_pose_data_path):
+        test_pose_dataset = KeypointDatasetJSON(json_folder=test_raw_pose_data_path,
+                                           kp_normalization=(
+                                               "global-pose_landmarks",
+                                               "local-right_hand_landmarks",
+                                               "local-left_hand_landmarks",
+                                               "local-face_landmarks",),
+                                           kp_normalization_method=pose_config['normalization']['normalization_method'],
+                                           data_key=pose_config['normalization']['data_key'],
+                                           missing_values=pose_config['missing_values'],
+                                           augmentation_configs=[],
+                                           load_from_raw=evaluation_config['load_from_raw'],
+                                           interpolate=pose_config['interpolate'],
+                                           )
+        print('Train raw pose data path: {}'.format(test_raw_pose_data_path))
+    else:
+        test_pose_dataset = None
+        print('Raw poses not found in {}'.format(test_raw_pose_data_path))
+
     dataset = DatasetForSLT(tokenizer= tokenizer,
                                 sign_data_args=config['SignDataArguments'],
                                 split=evaluation_config['split'],
@@ -223,6 +246,9 @@ def main():
                                 max_token_length=evaluation_config['max_token_length'],
                                 max_sequence_length=evaluation_config['max_sequence_length'],
                                 max_samples=evaluation_config['max_val_samples'],
+                                pose_dataset=test_pose_dataset,
+                                float32=evaluation_config['float32'],
+                                decimal_points=evaluation_config['decimal_points'],
                                 )
 
     dataloader = torch.utils.data.DataLoader(
