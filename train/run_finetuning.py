@@ -352,7 +352,7 @@ if __name__ == "__main__":
                                            load_from_raw=training_config['load_from_raw'],
                                            interpolate=pose_config['interpolate'],
                                            )
-        print('Train raw pose data path: {}'.format(val_raw_pose_data_path))
+        print('Val raw pose data path: {}'.format(val_raw_pose_data_path))
     else:
         val_pose_dataset = None
         print('Raw poses not found in {}'.format(val_raw_pose_data_path))
