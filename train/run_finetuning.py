@@ -340,7 +340,7 @@ if __name__ == "__main__":
                                 pose_dataset=val_pose_dataset,
                                 float32=training_config['float32'],
                                 decimal_points=training_config['decimal_points'],
-                                paraphrases=training_config['use_paraphrases'],
+                                paraphrases=False,
                                 )
 
     if args.verbose:
