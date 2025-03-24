@@ -16,7 +16,6 @@ from utils.translation import postprocess_text
 from utils.keypoint_dataset import KeypointDatasetJSON
 from utils.augmentation_config import get_augmentations
 from dataset.generic_sl_dataset import SignFeatureDataset as DatasetForSLT
-from torch.utils.data import DataLoader, SequentialSampler, RandomSampler
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -182,44 +181,6 @@ def get_sign_input_dim(config):
     return sign_input_dim
 
 
-
-class CustomTrainer(Seq2SeqTrainer):
-    """
-      Custom Trainer that allows toggling dataset shuffling via a `shuffle` parameter.
-
-      This class overrides `get_train_dataloader()` to control whether training data is
-      shuffled using `RandomSampler` (default Hugging Face behavior) or kept in order using
-      `SequentialSampler`.
-
-      Attributes:
-          shuffle (bool): If True, uses `RandomSampler` with a fixed seed to match the
-                          original Trainer behavior. If False, uses `SequentialSampler`
-                          to preserve data order.
-      """
-    def __init__(self, shuffle=True, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.shuffle = shuffle
-
-    def get_train_dataloader(self):
-        # Match Hugging Face's Trainer behavior exactly
-        if self.shuffle:
-            generator = torch.Generator()
-            generator.manual_seed(self.args.seed)  # Ensure reproducibility
-            sampler = RandomSampler(self.train_dataset, generator=generator)
-        else:
-            sampler = SequentialSampler(self.train_dataset)
-        return DataLoader(
-            self.train_dataset,
-            batch_size=self.args.train_batch_size,
-            # sampler=SequentialSampler(self.train_dataset),  # No shuffling
-            # sampler=RandomSampler(self.train_dataset),  # No shuffling
-            sampler=sampler,
-            collate_fn=self.data_collator,
-            num_workers=self.args.dataloader_num_workers,
-            pin_memory=self.args.dataloader_pin_memory,
-        )
-
-
 if __name__ == "__main__":
     args = parse_args()
     if os.environ.get("LOCAL_RANK", "0") == "0" and args.verbose:
@@ -366,6 +327,7 @@ if __name__ == "__main__":
                                 pose_dataset=train_pose_dataset,
                                 float32=training_config['float32'],
                                 decimal_points=training_config['decimal_points'],
+                                paraphrases=training_config['use_paraphrases'],
                                 )
 
     val_dataset = DatasetForSLT(tokenizer= tokenizer,
@@ -378,6 +340,7 @@ if __name__ == "__main__":
                                 pose_dataset=val_pose_dataset,
                                 float32=training_config['float32'],
                                 decimal_points=training_config['decimal_points'],
+                                paraphrases=training_config['use_paraphrases'],
                                 )
 
     if args.verbose:
@@ -483,7 +446,7 @@ if __name__ == "__main__":
     if os.environ.get("LOCAL_RANK", "0") == "0" and training_config['report_to'] == 'wandb': # TODO: remove redundant data
         wandb.config.update(vars(training_args))
 
-    trainer = CustomTrainer(
+    trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
@@ -491,7 +454,6 @@ if __name__ == "__main__":
         tokenizer=tokenizer,
         data_collator=collate_fn,
         compute_metrics=compute_metrics,
-        shuffle=training_config['shuffle'],
     )
 
     trainer.train(resume_from_checkpoint=training_config['resume_from_checkpoint'])

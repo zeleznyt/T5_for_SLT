@@ -3,6 +3,7 @@ from typing import Dict
 import h5py
 import json
 import numpy as np
+import random
 
 import torch
 from torch.utils.data import Dataset
@@ -28,6 +29,7 @@ class SignFeatureDataset(Dataset):
         pose_dataset=None,
         float32=False,
         decimal_points=-1,
+        paraphrases=False,
     ):
         """
 
@@ -49,6 +51,7 @@ class SignFeatureDataset(Dataset):
         self.pose_dataset = pose_dataset
         self.float32 = False if float32 in ["False", "false", False] else True
         self.decimal_points = int(decimal_points)
+        self.paraphrases = paraphrases
         data_dir = sign_data_args['data_dir']
 
         assert self.split in ['train', 'dev', 'test'], 'split must be in ["train", "dev", "test"]'
@@ -135,7 +138,11 @@ class SignFeatureDataset(Dataset):
                 else:
                     visual_features[input_type] = None
 
-        translation = self.annotation[video_id][clip_name]['translation']
+        clip_dict = self.annotation[video_id][clip_name]
+        if self.paraphrases:
+            translation = random.choice(clip_dict['paraphrases'] + [clip_dict['translation']])
+        else:
+            translation = clip_dict['translation']
 
         decoded = self.tokenizer(
             translation,
