@@ -10,6 +10,7 @@ from transformers import T5Config
 from model.modeling_t5 import T5ModelForSLT
 from utils.translation import postprocess_text
 import evaluate
+from sacrebleu.metrics import BLEU
 import yaml
 from dataset.generic_sl_dataset import SignFeatureDataset as DatasetForSLT
 from utils.keypoint_dataset import KeypointDatasetJSON
@@ -279,14 +280,16 @@ def main():
             print("-" * 50)
 
     # Compute metrics
-    sacrebleu = evaluate.load('sacrebleu')
-    result = sacrebleu.compute(predictions=decoded_preds, references=decoded_labels)
+    decoded_labels = [list(x) for x in zip(*decoded_labels)]
+    bleu1 = BLEU(max_ngram_order=1).corpus_score(decoded_preds,  decoded_labels)
+    bleu2 = BLEU(max_ngram_order=2).corpus_score(decoded_preds,  decoded_labels)
+    bleu3 = BLEU(max_ngram_order=3).corpus_score(decoded_preds,  decoded_labels)
+    bleu4 = BLEU(max_ngram_order=4).corpus_score(decoded_preds,  decoded_labels)
     result = {
-        "bleu": result["score"],
-        'bleu-1': result['precisions'][0],
-        'bleu-2': result['precisions'][1],
-        'bleu-3': result['precisions'][2],
-        'bleu-4': result['precisions'][3],
+        "bleu-1": bleu1.score,
+        "bleu21": bleu2.score,
+        "bleu-3": bleu3.score,
+        "bleu-4": bleu4.score,
     }
 
     result = {k: round(v, 4) for k, v in result.items()}
