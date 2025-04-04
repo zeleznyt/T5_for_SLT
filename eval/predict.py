@@ -287,7 +287,7 @@ def main():
     bleu4 = BLEU(max_ngram_order=4).corpus_score(decoded_preds,  decoded_labels)
     result = {
         "bleu-1": bleu1.score,
-        "bleu21": bleu2.score,
+        "bleu-2": bleu2.score,
         "bleu-3": bleu3.score,
         "bleu-4": bleu4.score,
     }
