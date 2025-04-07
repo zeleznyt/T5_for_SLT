@@ -290,6 +290,10 @@ def main():
         "bleu-2": bleu2.score,
         "bleu-3": bleu3.score,
         "bleu-4": bleu4.score,
+        "bleu-1_precision": bleu4.precisions[0],
+        "bleu-2_precision": bleu4.precisions[1],
+        "bleu-3_precision": bleu4.precisions[2],
+        "bleu-4_precision": bleu4.precisions[3],
     }
 
     result = {k: round(v, 4) for k, v in result.items()}
