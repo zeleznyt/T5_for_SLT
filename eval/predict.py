@@ -304,7 +304,7 @@ def main():
             "prediction": pred,
             "reference": ref
         }
-        for pred, ref in zip(decoded_preds, decoded_labels)
+        for pred, ref in zip(decoded_preds, decoded_labels[0])
     ]
     all_predictions = {'metrics': result, 'predictions': all_predictions[:100]}
 
