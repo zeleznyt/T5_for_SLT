@@ -1,4 +1,17 @@
 # T5_for_SLT
+## Publications
+
+**Exploring Pose-based Sign Language Translation: Ablation Studies and Attention Insights**  
+*Author1, Author2, ...*  
+Published at *TBA*  
+Code corresponding to this paper: [commit cb5fa58](https://github.com/zeleznyt/T5_for_SLT/tree/cb5fa58907b34365316f017ce6fe13d0116c829b)
+
+**BibTeX citation**:
+```bibtex
+@inproceedings{TBA
+}
+```
+
 ## Installation
 ```
 cd T5_for_SLT/
