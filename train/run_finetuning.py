@@ -416,6 +416,7 @@ if __name__ == "__main__":
 
     training_args = Seq2SeqTrainingArguments(
         output_dir=os.path.join(training_config['output_dir'], training_config['model_name']),
+        dataloader_num_workers=training_config.get('dataloader_num_workers', 0),
         logging_steps=training_config['logging_steps'],
         num_train_epochs=num_train_epochs,
         # max_steps=args.max_training_steps,

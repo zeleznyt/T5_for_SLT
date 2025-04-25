@@ -39,6 +39,7 @@ TrainingArguments:
   warmup_steps: 5000
   weight_decay: 0.0
   fp16: False
+  dataloader_num_workers: 0
 #  Data processing
   max_sequence_length: 250
   max_token_length: 128
