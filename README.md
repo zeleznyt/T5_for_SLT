@@ -1,7 +1,7 @@
 # T5_for_SLT
 ## Publications
 
-**Exploring Pose-based Sign Language Translation: Ablation Studies and Attention Insights**  
+### Exploring Pose-based Sign Language Translation: Ablation Studies and Attention Insights
 *Author1, Author2, ...*  
 Published at *TBA*  
 Code corresponding to this paper: [commit cb5fa58](https://github.com/zeleznyt/T5_for_SLT/tree/cb5fa58907b34365316f017ce6fe13d0116c829b)
@@ -11,6 +11,22 @@ Code corresponding to this paper: [commit cb5fa58](https://github.com/zeleznyt/T
 @inproceedings{TBA
 }
 ```
+
+### YouTube-ASL Clip Keypoint Dataset
+We are releasing the YouTube-ASL keypoint dataset used in our research. It contains keypoints extracted from video clips that were publicly available at the time of collection and that passed our preprocessing and filtering pipeline. In total, the dataset includes 390,547 clips. It is publicly available at: http://hdl.handle.net/11234/1-5898.
+
+**Dataset BibTeX citation**:
+```
+@misc{11234/1-5898,
+  title     = {{YouTube}-{ASL} Clip Keypoint Dataset},
+  author    = {Zelezny, Tomas and Hruz, Marek and Straka, Jaub and Gueuwou, Shester},
+  url       = {http://hdl.handle.net/11234/1-5898},
+  note      = {{LINDAT}/{CLARIAH}-{CZ} digital library at the Institute of Formal and Applied Linguistics ({{\'U}FAL}), Faculty of Mathematics and Physics, Charles University},
+  copyright = {Creative Commons - Attribution 4.0 International ({CC} {BY} 4.0)},
+  year      = {2024}
+}
+```
+
 
 ## Installation
 ```
