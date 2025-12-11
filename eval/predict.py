@@ -11,6 +11,7 @@ from model.modeling_t5 import T5ModelForSLT
 from utils.translation import postprocess_text
 import evaluate
 from sacrebleu.metrics import BLEU
+from rouge_score import rouge_scorer
 import yaml
 from dataset.generic_sl_dataset import SignFeatureDataset as DatasetForSLT
 from utils.keypoint_dataset import KeypointDatasetJSON
@@ -51,6 +52,10 @@ def parse_args():
     parser.add_argument("--verbose", action="store_true", help="Verbose mode.")
 
     return parser.parse_args()
+
+
+def mean(values):
+    return float(sum(values) / len(values)) if values else 0.0
 
 
 def load_config(cfg_path):
@@ -280,11 +285,13 @@ def main():
             print("-" * 50)
 
     # Compute metrics
-    decoded_labels = [list(x) for x in zip(*decoded_labels)]
-    bleu1 = BLEU(max_ngram_order=1).corpus_score(decoded_preds,  decoded_labels)
-    bleu2 = BLEU(max_ngram_order=2).corpus_score(decoded_preds,  decoded_labels)
-    bleu3 = BLEU(max_ngram_order=3).corpus_score(decoded_preds,  decoded_labels)
-    bleu4 = BLEU(max_ngram_order=4).corpus_score(decoded_preds,  decoded_labels)
+    decoded_labels_list = [list(x) for x in zip(*decoded_labels)]
+    decoded_labels = [x[0] for x in decoded_labels]
+    decoded_preds = ['Hello, wel  bramboraka se shlehackou Daily Moth.', "Xddaserg egergrtg regerg eferg dfd", "It's Monday, October 14. v sozm for news?", 'Here are couple updates on Syria.']
+    bleu1 = BLEU(max_ngram_order=1).corpus_score(decoded_preds,  decoded_labels_list)
+    bleu2 = BLEU(max_ngram_order=2).corpus_score(decoded_preds,  decoded_labels_list)
+    bleu3 = BLEU(max_ngram_order=3).corpus_score(decoded_preds,  decoded_labels_list)
+    bleu4 = BLEU(max_ngram_order=4).corpus_score(decoded_preds,  decoded_labels_list)
     result = {
         "bleu-1": bleu1.score,
         "bleu-2": bleu2.score,
@@ -295,6 +302,24 @@ def main():
         "bleu-3_precision": bleu4.precisions[2],
         "bleu-4_precision": bleu4.precisions[3],
     }
+
+    # BLEURT
+    bleurt_metric = evaluate.load("bleurt")
+    bleurt_scores = bleurt_metric.compute(
+        predictions=decoded_preds,
+        references=decoded_labels,
+    )
+    result["bleurt"] = mean(bleurt_scores["scores"])
+
+    # Rouge-L
+    scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
+    rougeL_list = []
+
+    for pred, ref in zip(decoded_preds, decoded_labels):
+        scores = scorer.score(target=ref, prediction=pred)
+        rougeL_list.append(scores["rougeL"].fmeasure)
+
+    result["rouge-L"] = sum(rougeL_list) / len(rougeL_list)
 
     result = {k: round(v, 4) for k, v in result.items()}
 
@@ -308,7 +333,7 @@ def main():
             "prediction": pred,
             "reference": ref
         }
-        for pred, ref in zip(decoded_preds, decoded_labels[0])
+        for pred, ref in zip(decoded_preds, decoded_labels)
     ]
     all_predictions = {'metrics': result, 'predictions': all_predictions[:100]}
 
