@@ -287,7 +287,6 @@ def main():
     # Compute metrics
     decoded_labels_list = [list(x) for x in zip(*decoded_labels)]
     decoded_labels = [x[0] for x in decoded_labels]
-    decoded_preds = ['Hello, wel  bramboraka se shlehackou Daily Moth.', "Xddaserg egergrtg regerg eferg dfd", "It's Monday, October 14. v sozm for news?", 'Here are couple updates on Syria.']
     bleu1 = BLEU(max_ngram_order=1).corpus_score(decoded_preds,  decoded_labels_list)
     bleu2 = BLEU(max_ngram_order=2).corpus_score(decoded_preds,  decoded_labels_list)
     bleu3 = BLEU(max_ngram_order=3).corpus_score(decoded_preds,  decoded_labels_list)
