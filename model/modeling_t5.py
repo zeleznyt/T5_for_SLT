@@ -29,6 +29,10 @@ class T5ModelForSLT(PreTrainedModel):
             if isinstance(layer, nn.Linear):
                 nn.init.xavier_uniform_(layer.weight)  # Xavier init (matches T5 embeddings)
 
+        #self.registers = nn.parameter(config.n_registers, self.model.lm_head.in_features)
+        # self.registers = nn.Parameter(torch.randn(config.n_registers, self.model.shared.weight.shape[1]))
+        self.registers = nn.Parameter(torch.randn(config.n_registers, self.model.shared.weight.shape[1]))
+
         self.model.generation_config = GenerationConfig(
             max_length=config.max_length,
             num_beams=config.num_beams,
@@ -78,9 +82,20 @@ class T5ModelForSLT(PreTrainedModel):
         if inputs_embeds is None:
             inputs_embeds = self.custom_linear(sign_inputs)
 
+        registers_expanded = self.registers.unsqueeze(0).expand(attention_mask.size(0), -1, -1)
+        inputs_embeds_extended = torch.cat([registers_expanded, inputs_embeds], dim=1)
+
+        register_mask = torch.ones(
+            attention_mask.size(0),
+            self.registers.shape[0],
+            device=attention_mask.device,
+            dtype=attention_mask.dtype
+        )
+        attention_mask_extended = torch.cat([register_mask, attention_mask], dim=1)
+
         return self.model.forward(
             input_ids=None,  # We use inputs_embeds instead of input_ids
-            attention_mask=attention_mask,
+            attention_mask=attention_mask_extended,
             labels=labels,
-            inputs_embeds=inputs_embeds,
+            inputs_embeds=inputs_embeds_extended,
             **kwargs)

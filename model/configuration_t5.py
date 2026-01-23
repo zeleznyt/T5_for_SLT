@@ -21,6 +21,7 @@ class SignT5Config(PretrainedConfig):
             no_repeat_ngram_size=0,
             do_sample=False,
             early_stopping=False,
+            n_registers=0,
             **kwargs
 
             # freeze_shared=False,
@@ -54,7 +55,7 @@ class SignT5Config(PretrainedConfig):
         self.early_stopping = early_stopping
         self.no_repeat_ngram_size = no_repeat_ngram_size
         self.do_sample = do_sample
-
+        self.n_registers = n_registers
         # Unused:
         # self.freeze_shared = freeze_shared
         #

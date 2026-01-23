@@ -11,6 +11,7 @@ ModelArguments:
   early_stopping: True
   no_repeat_ngram_size: 3
   do_sample: True
+  n_registers: 1
 
 # TrainingArguments are overwritten by not-None arguments
 TrainingArguments:
