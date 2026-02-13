@@ -12,6 +12,7 @@ ModelArguments:
   no_repeat_ngram_size: 3
   do_sample: True
   n_registers: 1
+  register_placement: "front" #"front", before_padding", "after_padding"
 
 # TrainingArguments are overwritten by not-None arguments
 TrainingArguments:
@@ -23,7 +24,7 @@ TrainingArguments:
   load_only_weights: False
   freeze_t5: False
 #  Logging and saving
-  report_to: wandb
+  report_to: wandb #none
   logging_steps: 1
   eval_steps: 200
   save_steps: 100
