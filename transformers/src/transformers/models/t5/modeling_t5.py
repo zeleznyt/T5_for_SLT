@@ -445,11 +445,19 @@ class T5Attention(nn.Module):
                 max_buckets = num_buckets
 
             if bidirectional:
-                relative_buckets[n_registers:, :n_registers] = memory_position[0, :n_registers] + max_buckets
-                if registers_view_homogenous:
-                    relative_buckets[:n_registers, :n_registers] = max_buckets+ n_registers
-                else:
-                    relative_buckets[:n_registers, :n_registers] = memory_position[0, :n_registers] + max_buckets+ n_registers
+                if register_placement == "front":
+                    relative_buckets[n_registers:, :n_registers] = memory_position[0, :n_registers] + max_buckets
+                    if registers_view_homogenous:
+                        relative_buckets[:n_registers, :n_registers] = max_buckets+ n_registers
+                    else:
+                        relative_buckets[:n_registers, :n_registers] = memory_position[0, :n_registers] + max_buckets+ n_registers
+                elif register_placement == "after_padding":
+                    relative_buckets[:relative_buckets.shape[0]-n_registers, relative_buckets.shape[1]-n_registers:] = memory_position[0, :n_registers] + max_buckets
+                    if registers_view_homogenous:
+                        relative_buckets[relative_buckets.shape[0]-n_registers:, relative_buckets.shape[1]-n_registers:] = max_buckets + n_registers
+                    else:
+                        relative_buckets[relative_buckets.shape[0]-n_registers:, relative_buckets.shape[1]-n_registers:] = memory_position[
+                                                                           0, :n_registers] + max_buckets + n_registers
             else:
                 pass
                 # if registers_view_homogenous:
