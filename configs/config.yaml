@@ -60,6 +60,7 @@ SignDataArguments:
   annotation_path:
     train: YT.annotations.supersmall.json
     dev: YT.annotations.supersmall.json
+    test: YT.annotations.supersmall.json
 #    train: YT.annotations.train.json
 #    dev: YT.annotations.dev.json
   visual_features:
@@ -79,9 +80,11 @@ SignDataArguments:
       enable_input: True
       train: YouTubeASL.keypoints.train.json
       dev: YouTubeASL.keypoints.dev.json
+      test: YouTubeASL.keypoints.test.json
       normalization:
         train_json_dir: /media/zeleznyt/DATA/data/YTASL_small/raw_keypoints
         val_json_dir: /media/zeleznyt/DATA/data/YTASL_small/raw_keypoints
+        test_json_dir: /media/zeleznyt/DATA/data/YTASL_small/raw_keypoints
         normalization_method: sign_space
         data_key: cropped_keypoints
       augmentation_type: none

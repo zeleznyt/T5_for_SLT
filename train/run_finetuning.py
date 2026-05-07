@@ -567,3 +567,85 @@ if __name__ == "__main__":
     with open(scores_path, "w") as f:
         json.dump(scores, f, ensure_ascii=False, indent=4)
         print(f"Scores saved to {scores_path}")
+
+    # Test set inference
+    sign_data_args = config['SignDataArguments']
+    data_dir = sign_data_args['data_dir']
+    test_annotation_path = sign_data_args.get('annotation_path', {}).get('test')
+    test_pose_path = sign_data_args['visual_features']['pose'].get('normalization', {}).get('test_json_dir')
+    if test_annotation_path is not None and not os.path.isabs(test_annotation_path):
+        test_annotation_path = os.path.join(data_dir, test_annotation_path)
+    if test_pose_path is not None and not os.path.isabs(test_pose_path):
+        test_pose_path = os.path.join(data_dir, test_pose_path)
+
+    if test_annotation_path and os.path.exists(test_annotation_path) and test_pose_path and os.path.isdir(test_pose_path):
+        test_pose_dataset = KeypointDatasetJSON(json_folder=test_pose_path,
+                                           kp_normalization=(
+                                               "global-pose_landmarks",
+                                               "local-right_hand_landmarks",
+                                               "local-left_hand_landmarks",
+                                               "local-face_landmarks",),
+                                           kp_normalization_method=pose_config['normalization']['normalization_method'],
+                                           data_key=pose_config['normalization']['data_key'],
+                                           missing_values=pose_config['missing_values'],
+                                           augmentation_configs=[],
+                                           load_from_raw=training_config['load_from_raw'],
+                                           interpolate=pose_config['interpolate'],
+                                           )
+        test_dataset = DatasetForSLT(tokenizer=tokenizer,
+                                sign_data_args=sign_data_args,
+                                split='test',
+                                skip_frames=training_config['skip_frames'],
+                                max_token_length=training_config['max_token_length'],
+                                max_sequence_length=training_config['max_sequence_length'],
+                                max_samples=None,
+                                pose_dataset=test_pose_dataset,
+                                float32=training_config['float32'],
+                                decimal_points=training_config['decimal_points'],
+                                paraphrases=False,
+                                )
+        test_dataloader = torch.utils.data.DataLoader(
+            test_dataset,
+            batch_size=training_config['per_device_eval_batch_size'],
+            collate_fn=collate_fn,
+        )
+
+        print('Evaluating test data...')
+        test_predictions, test_labels = evaluate_model(model, test_dataloader, tokenizer)
+
+        test_prediction_path = os.path.join(prediction_dir, "test_predictions.json")
+        test_scores_path = os.path.join(prediction_dir, "test_scores.json")
+        with open(test_prediction_path, "w") as f:
+            test_predictions_output = [
+                {
+                    "prediction": prediction,
+                    "reference": label[0]
+                }
+                for prediction, label in zip(test_predictions, test_labels)
+            ]
+            json.dump(test_predictions_output, f, ensure_ascii=False, indent=4)
+            print(f"Test predictions saved to {test_prediction_path}")
+
+        test_labels_list = [list(x) for x in zip(*test_labels)]
+        test_bleu1 = BLEU(tokenize="13a", smooth_method="exp", effective_order=bleu_effective_order, lowercase=False, max_ngram_order=1).corpus_score(test_predictions, test_labels_list)
+        test_bleu2 = BLEU(tokenize="13a", smooth_method="exp", effective_order=bleu_effective_order, lowercase=False, max_ngram_order=2).corpus_score(test_predictions, test_labels_list)
+        test_bleu3 = BLEU(tokenize="13a", smooth_method="exp", effective_order=bleu_effective_order, lowercase=False, max_ngram_order=3).corpus_score(test_predictions, test_labels_list)
+        test_bleu4 = BLEU(tokenize="13a", smooth_method="exp", effective_order=bleu_effective_order, lowercase=False, max_ngram_order=4).corpus_score(test_predictions, test_labels_list)
+        test_scores = {
+            "test": {
+                "bleu": test_bleu4.score,
+                "bleu-1": test_bleu1.score,
+                "bleu-2": test_bleu2.score,
+                "bleu-3": test_bleu3.score,
+                "bleu-4": test_bleu4.score,
+                "bleu-1_precision": test_bleu4.precisions[0],
+                "bleu-2_precision": test_bleu4.precisions[1],
+                "bleu-3_precision": test_bleu4.precisions[2],
+                "bleu-4_precision": test_bleu4.precisions[3],
+            }
+        }
+        with open(test_scores_path, "w") as f:
+            json.dump(test_scores, f, ensure_ascii=False, indent=4)
+            print(f"Test scores saved to {test_scores_path}")
+    else:
+        print(f"Skipping test evaluation. Test annotation path: {test_annotation_path}; test pose path: {test_pose_path}")
