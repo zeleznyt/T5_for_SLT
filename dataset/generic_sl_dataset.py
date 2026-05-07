@@ -82,6 +82,17 @@ class SignFeatureDataset(Dataset):
                     self.list_data.append((video_id, self.clip_order_to_int[video_id][clip_name]))
         for input_type in INPUT_TYPES:
             enable_feature = sign_data_args['visual_features'][input_type]['enable_input']
+            if input_type == 'pose' and self.pose_dataset is not None and enable_feature:
+                pose_video_clip = set()
+                for clip_paths in self.pose_dataset.video_to_files.values():
+                    for clip_path in clip_paths:
+                        clip_name = ".".join(os.path.basename(clip_path).split(".")[:-1])
+                        for video_id in self.clip_order_to_int:
+                            if clip_name in self.clip_order_to_int[video_id]:
+                                pose_video_clip.add((video_id, self.clip_order_to_int[video_id][clip_name]))
+                self.h5_data[input_type] = None
+                self.remove_missing_annotation(pose_video_clip)
+                continue
             if 'train' in sign_data_args['visual_features'][input_type]:
                 vf_train_path = sign_data_args['visual_features'][input_type]['train']
             else:
