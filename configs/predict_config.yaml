@@ -28,6 +28,7 @@ EvaluationArguments:
   batch_size: 2
 #  Debugging
   max_val_samples: none
+  bleu_effective_order: False
 
 SignDataArguments:
   data_dir: /media/zeleznyt/DATA/data/YTASL_small

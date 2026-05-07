@@ -25,6 +25,7 @@ EvaluationArguments:
   batch_size: 16
 #  Debugging
   max_val_samples: none
+  bleu_effective_order: False
 
 SignDataArguments:
   data_dir: /scratch/project_465001749/data/

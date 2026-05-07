@@ -43,6 +43,7 @@ def parse_args():
     parser.add_argument("--length_penalty", type=float, default=None, help="Length penalty for generation.")
     parser.add_argument("--early_stopping", type=bool, default=None, help="Use early stopping in generation.")
     parser.add_argument("--no_repeat_ngram_size", type=int, default=None, help="No repeat ngram size.")
+    parser.add_argument("--bleu_effective_order", type=bool, default=None, help="Use effective n-gram order for BLEU.")
 
     # Running arguments
     parser.add_argument("--dev", action="store_true", help="Use dev mode.")
@@ -117,8 +118,7 @@ def evaluate_model(model, dataloader, tokenizer, evaluation_config):
     with torch.no_grad():
         for step, batch in enumerate(dataloader):
             batch = {k: v.to(model.base_model.device) for k, v in batch.items()}
-            if len(batch['labels'].shape) < 2:
-                batch['labels'] = batch['labels'].unsqueeze(0)
+            labels_batch = batch.pop("labels")
             outputs = model.generate(
                 **batch,
                 early_stopping=model.config.early_stopping,
@@ -134,7 +134,7 @@ def evaluate_model(model, dataloader, tokenizer, evaluation_config):
             outputs[outputs > len(tokenizer) - 1] = tokenizer.unk_token_id
 
             decoded_preds = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-            decoded_labels = tokenizer.batch_decode(batch["labels"], skip_special_tokens=True)
+            decoded_labels = tokenizer.batch_decode(labels_batch, skip_special_tokens=True)
 
             predictions.extend(decoded_preds)
             labels.extend([[translation] for translation in decoded_labels])
@@ -212,10 +212,10 @@ def main():
 
         # Process labels
         labels = torch.stack([
-            torch.cat((sample["labels"].squeeze(0), torch.zeros(max_token_len - sample["labels"].shape[0])), dim=0)
-            if sample["labels"].shape[0] < max_token_len else sample["labels"]
+            torch.cat((sample["labels"].squeeze(0), torch.zeros(max_token_len - sample["labels"].squeeze(0).shape[0])), dim=0)
+            if sample["labels"].squeeze(0).shape[0] < max_token_len else sample["labels"].squeeze(0)
             for sample in batch
-        ]).squeeze(0).to(torch.long)
+        ]).to(torch.long)
 
         return {
             "sign_inputs": torch.cat(sign_inputs, dim=-1),
@@ -287,10 +287,11 @@ def main():
     # Compute metrics
     decoded_labels_list = [list(x) for x in zip(*decoded_labels)]
     decoded_labels = [x[0] for x in decoded_labels]
-    bleu1 = BLEU(max_ngram_order=1).corpus_score(decoded_preds,  decoded_labels_list)
-    bleu2 = BLEU(max_ngram_order=2).corpus_score(decoded_preds,  decoded_labels_list)
-    bleu3 = BLEU(max_ngram_order=3).corpus_score(decoded_preds,  decoded_labels_list)
-    bleu4 = BLEU(max_ngram_order=4).corpus_score(decoded_preds,  decoded_labels_list)
+    bleu_effective_order = evaluation_config.get('bleu_effective_order', False)
+    bleu1 = BLEU(tokenize="13a", smooth_method="exp", effective_order=bleu_effective_order, lowercase=False, max_ngram_order=1).corpus_score(decoded_preds,  decoded_labels_list)
+    bleu2 = BLEU(tokenize="13a", smooth_method="exp", effective_order=bleu_effective_order, lowercase=False, max_ngram_order=2).corpus_score(decoded_preds,  decoded_labels_list)
+    bleu3 = BLEU(tokenize="13a", smooth_method="exp", effective_order=bleu_effective_order, lowercase=False, max_ngram_order=3).corpus_score(decoded_preds,  decoded_labels_list)
+    bleu4 = BLEU(tokenize="13a", smooth_method="exp", effective_order=bleu_effective_order, lowercase=False, max_ngram_order=4).corpus_score(decoded_preds,  decoded_labels_list)
     result = {
         "bleu-1": bleu1.score,
         "bleu-2": bleu2.score,

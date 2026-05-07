@@ -5,6 +5,7 @@ import wandb
 import torch
 import evaluate
 import numpy as np
+from sacrebleu.metrics import BLEU
 from transformers import (
     Seq2SeqTrainingArguments,
     Seq2SeqTrainer,
@@ -125,6 +126,7 @@ def parse_args():
     parser.add_argument("--num_beams", type=int, default=None)
     parser.add_argument("--early_stopping", type=bool, default=None)
     parser.add_argument('--no_repeat_ngram_size', type=int, default=None)
+    parser.add_argument("--bleu_effective_order", type=bool, default=None)
 
     # Other arguments
     parser.add_argument("--verbose", action="store_true")
@@ -281,10 +283,10 @@ if __name__ == "__main__":
 
         # Process labels
         labels = torch.stack([
-            torch.cat((sample["labels"].squeeze(0), torch.zeros(max_token_len - sample["labels"].shape[0])), dim=0)
-            if sample["labels"].shape[0] < max_token_len else sample["labels"]
+            torch.cat((sample["labels"].squeeze(0), torch.zeros(max_token_len - sample["labels"].squeeze(0).shape[0])), dim=0)
+            if sample["labels"].squeeze(0).shape[0] < max_token_len else sample["labels"].squeeze(0)
             for sample in batch
-        ]).squeeze(0).to(torch.long)
+        ]).to(torch.long)
 
         return {
             "sign_inputs": torch.cat(sign_inputs, dim=-1),
@@ -375,8 +377,6 @@ if __name__ == "__main__":
         print(sample["attention_mask"])
         print(f"Labels:")
         
-    sacrebleu = evaluate.load('sacrebleu')
-
     def compute_metrics(eval_preds):
         preds, labels = eval_preds
 
@@ -400,13 +400,18 @@ if __name__ == "__main__":
             print(f"Reference: {decoded_labels[i]}")
             print('*'*50)
 
-        result = sacrebleu.compute(predictions=decoded_preds, references=decoded_labels)
+        decoded_labels_list = [list(x) for x in zip(*decoded_labels)]
+        bleu_effective_order = training_config.get('bleu_effective_order', False)
+        bleu1 = BLEU(tokenize="13a", smooth_method="exp", effective_order=bleu_effective_order, lowercase=False, max_ngram_order=1).corpus_score(decoded_preds, decoded_labels_list)
+        bleu2 = BLEU(tokenize="13a", smooth_method="exp", effective_order=bleu_effective_order, lowercase=False, max_ngram_order=2).corpus_score(decoded_preds, decoded_labels_list)
+        bleu3 = BLEU(tokenize="13a", smooth_method="exp", effective_order=bleu_effective_order, lowercase=False, max_ngram_order=3).corpus_score(decoded_preds, decoded_labels_list)
+        bleu4 = BLEU(tokenize="13a", smooth_method="exp", effective_order=bleu_effective_order, lowercase=False, max_ngram_order=4).corpus_score(decoded_preds, decoded_labels_list)
         result = {
-            "bleu": result["score"], 
-            'bleu-1': result['precisions'][0],
-            'bleu-2': result['precisions'][1],
-            'bleu-3': result['precisions'][2],
-            'bleu-4': result['precisions'][3],
+            "bleu": bleu4.score,
+            'bleu-1': bleu1.score,
+            'bleu-2': bleu2.score,
+            'bleu-3': bleu3.score,
+            'bleu-4': bleu4.score,
         }
 
         wer_metric = evaluate.load("wer")
@@ -421,7 +426,7 @@ if __name__ == "__main__":
 
         return result
 
-    num_train_epochs = training_config['max_training_steps'] // (len(train_dataset) //
+    num_train_epochs = training_config['max_training_steps'] / (len(train_dataset) //
              training_config['per_device_train_batch_size'] // training_config['gradient_accumulation_steps'])
     num_train_epochs = max(math.ceil(num_train_epochs), 1)
 
@@ -492,8 +497,7 @@ if __name__ == "__main__":
         predictions, labels = [], []
         for step, batch in tqdm(enumerate(dataloader)):
             batch = {k: v.to(model.base_model.device) for k, v in batch.items()}
-            if len(batch['labels'].shape) < 2:
-                batch['labels'] = batch['labels'].unsqueeze(0)
+            labels_batch = batch.pop("labels")
             outputs = model.generate(
                 **batch,
                 early_stopping=training_config['early_stopping'],
@@ -509,7 +513,7 @@ if __name__ == "__main__":
             outputs[outputs > len(tokenizer) - 1] = tokenizer.unk_token_id
 
             decoded_preds = tokenizer.batch_decode(outputs, skip_special_tokens=True)
-            decoded_labels = tokenizer.batch_decode(batch["labels"], skip_special_tokens=True)
+            decoded_labels = tokenizer.batch_decode(labels_batch, skip_special_tokens=True)
 
             predictions.extend(decoded_preds)
             labels.extend([[translation] for translation in decoded_labels])
@@ -532,7 +536,23 @@ if __name__ == "__main__":
         json.dump(all_predictions, f)
         print(f'Predictions saved to {os.path.join(training_config["output_dir"], training_config["model_name"], "val_predictions.txt")}')
 
-    val_bleu = sacrebleu.compute(predictions=val_predictions, references=val_labels)
+    val_labels_list = [list(x) for x in zip(*val_labels)]
+    bleu_effective_order = training_config.get('bleu_effective_order', False)
+    val_bleu1 = BLEU(tokenize="13a", smooth_method="exp", effective_order=bleu_effective_order, lowercase=False, max_ngram_order=1).corpus_score(val_predictions, val_labels_list)
+    val_bleu2 = BLEU(tokenize="13a", smooth_method="exp", effective_order=bleu_effective_order, lowercase=False, max_ngram_order=2).corpus_score(val_predictions, val_labels_list)
+    val_bleu3 = BLEU(tokenize="13a", smooth_method="exp", effective_order=bleu_effective_order, lowercase=False, max_ngram_order=3).corpus_score(val_predictions, val_labels_list)
+    val_bleu4 = BLEU(tokenize="13a", smooth_method="exp", effective_order=bleu_effective_order, lowercase=False, max_ngram_order=4).corpus_score(val_predictions, val_labels_list)
+    val_bleu = {
+        "bleu": val_bleu4.score,
+        "bleu-1": val_bleu1.score,
+        "bleu-2": val_bleu2.score,
+        "bleu-3": val_bleu3.score,
+        "bleu-4": val_bleu4.score,
+        "bleu-1_precision": val_bleu4.precisions[0],
+        "bleu-2_precision": val_bleu4.precisions[1],
+        "bleu-3_precision": val_bleu4.precisions[2],
+        "bleu-4_precision": val_bleu4.precisions[3],
+    }
 
     # Save scores json
     scores = {
@@ -541,8 +561,6 @@ if __name__ == "__main__":
 
     with open(os.path.join(training_config["output_dir"], training_config["model_name"], "val_scores.json"), "w") as f:
         json.dump(scores, f)
-        print(f'Scores saved to {os.path.join(training_config['output_dir'], training_config['model_name'], "val_scores.json")}')
-
-
+        print(f"Scores saved to {os.path.join(training_config['output_dir'], training_config['model_name'], 'val_scores.json')}")
 
 
