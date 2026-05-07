@@ -414,12 +414,6 @@ if __name__ == "__main__":
             'bleu-4': bleu4.score,
         }
 
-        wer_metric = evaluate.load("wer")
-        flat_labels = [lab[0] if isinstance(lab, (list, tuple)) else lab for lab in decoded_labels]
-        wer_score = wer_metric.compute(predictions=decoded_preds, references=flat_labels)
-        print(f"Word Error Rate: {wer_score}")
-        result["wer"] = wer_score
-
         prediction_lens = [np.count_nonzero(pred != tokenizer.pad_token_id) for pred in preds]
         result["gen_len"] = np.mean(prediction_lens)
         result = {k: round(v, 4) for k, v in result.items()}
