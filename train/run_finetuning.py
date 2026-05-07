@@ -523,8 +523,13 @@ if __name__ == "__main__":
     print('Evaluating model...')
     val_predictions, val_labels = evaluate_model(model, val_dataloader, tokenizer)
 
+    prediction_dir = os.path.abspath(os.path.join(training_config['output_dir'], training_config['model_name']))
+    os.makedirs(prediction_dir, exist_ok=True)
+    prediction_path = os.path.join(prediction_dir, "val_predictions.json")
+    scores_path = os.path.join(prediction_dir, "val_scores.json")
+
     # Save predictions to file
-    with open(os.path.join(training_config['output_dir'], training_config['model_name'], "val_predictions.txt"), "w") as f:
+    with open(prediction_path, "w") as f:
         all_predictions = [
             {
                 "prediction": prediction,
@@ -533,8 +538,8 @@ if __name__ == "__main__":
             for prediction, label in zip(val_predictions, val_labels) 
         ]
 
-        json.dump(all_predictions, f)
-        print(f'Predictions saved to {os.path.join(training_config["output_dir"], training_config["model_name"], "val_predictions.txt")}')
+        json.dump(all_predictions, f, ensure_ascii=False, indent=4)
+        print(f'Predictions saved to {prediction_path}')
 
     val_labels_list = [list(x) for x in zip(*val_labels)]
     bleu_effective_order = training_config.get('bleu_effective_order', False)
@@ -559,8 +564,6 @@ if __name__ == "__main__":
         "val": val_bleu,
     }
 
-    with open(os.path.join(training_config["output_dir"], training_config["model_name"], "val_scores.json"), "w") as f:
-        json.dump(scores, f)
-        print(f"Scores saved to {os.path.join(training_config['output_dir'], training_config['model_name'], 'val_scores.json')}")
-
-
+    with open(scores_path, "w") as f:
+        json.dump(scores, f, ensure_ascii=False, indent=4)
+        print(f"Scores saved to {scores_path}")
