@@ -6,6 +6,8 @@ This repository contains code for pose-based sign language translation with a T5
 
 The current default workflow trains from raw keypoint JSON files. The older H5 feature workflow is still supported for existing experiments.
 
+For the WSLP 2026 shared-task baseline, see [WSLP2026_BASELINE.md](WSLP2026_BASELINE.md).
+
 ## Citation
 
 If you use this repository, please cite this paper:
