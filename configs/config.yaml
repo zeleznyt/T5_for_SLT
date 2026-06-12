@@ -47,7 +47,6 @@ TrainingArguments:
   skip_frames: False
   float32: False
   decimal_points: -1
-  load_from_raw: True
   use_paraphrases: False
 #  Evaluation
   num_beams: 5
@@ -83,7 +82,7 @@ SignDataArguments:
       test: YouTubeASL.keypoints.test.json
       normalization:
         train_json_dir: /media/zeleznyt/DATA/data/YTASL_small/raw_keypoints
-        val_json_dir: /media/zeleznyt/DATA/data/YTASL_small/raw_keypoints
+        dev_json_dir: /media/zeleznyt/DATA/data/YTASL_small/raw_keypoints
         test_json_dir: /media/zeleznyt/DATA/data/YTASL_small/raw_keypoints
         normalization_method: sign_space
         data_key: cropped_keypoints

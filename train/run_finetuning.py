@@ -14,8 +14,8 @@ from transformers import (
 from model.configuration_t5 import SignT5Config
 from model.modeling_t5 import T5ModelForSLT
 from utils.translation import postprocess_text
-from utils.keypoint_dataset import KeypointDatasetJSON
 from utils.augmentation_config import get_augmentations
+from utils.pose_data import build_pose_json_dataset, get_pose_json_dir, resolve_data_path
 from dataset.generic_sl_dataset import SignFeatureDataset as DatasetForSLT
 
 from dotenv import load_dotenv
@@ -120,7 +120,6 @@ def parse_args():
     parser.add_argument("--skip_frames", default=None)
     parser.add_argument("--float32", default=None)
     parser.add_argument("--decimal_points", default=None)
-    parser.add_argument("--load_from_raw", default=None)
 
     # Evaluation arguments
     parser.add_argument("--num_beams", type=int, default=None)
@@ -295,46 +294,9 @@ if __name__ == "__main__":
         }
 
     pose_config = config['SignDataArguments']['visual_features']['pose']
-    train_raw_pose_data_path = pose_config['normalization']['train_json_dir']
-    val_raw_pose_data_path = pose_config['normalization']['val_json_dir']
-
-    augmentation_configs = get_augmentations(pose_config['augmentation_type'])
-    if os.path.isdir(train_raw_pose_data_path):
-        train_pose_dataset = KeypointDatasetJSON(json_folder=train_raw_pose_data_path,
-                                           kp_normalization=(
-                                               "global-pose_landmarks",
-                                               "local-right_hand_landmarks",
-                                               "local-left_hand_landmarks",
-                                               "local-face_landmarks",),
-                                           kp_normalization_method=pose_config['normalization']['normalization_method'],
-                                           data_key=pose_config['normalization']['data_key'],
-                                           missing_values=pose_config['missing_values'],
-                                           augmentation_configs=augmentation_configs,
-                                           load_from_raw=training_config['load_from_raw'],
-                                           interpolate=pose_config['interpolate'],
-                                           )
-        print('Train raw pose data path: {}'.format(train_raw_pose_data_path))
-    else:
-        train_pose_dataset = None
-        print('Raw poses not found in {}'.format(train_raw_pose_data_path))
-    if os.path.isdir(val_raw_pose_data_path):
-        val_pose_dataset = KeypointDatasetJSON(json_folder=val_raw_pose_data_path,
-                                           kp_normalization=(
-                                               "global-pose_landmarks",
-                                               "local-right_hand_landmarks",
-                                               "local-left_hand_landmarks",
-                                               "local-face_landmarks",),
-                                           kp_normalization_method=pose_config['normalization']['normalization_method'],
-                                           data_key=pose_config['normalization']['data_key'],
-                                           missing_values=pose_config['missing_values'],
-                                           augmentation_configs=[],
-                                           load_from_raw=training_config['load_from_raw'],
-                                           interpolate=pose_config['interpolate'],
-                                           )
-        print('Val raw pose data path: {}'.format(val_raw_pose_data_path))
-    else:
-        val_pose_dataset = None
-        print('Raw poses not found in {}'.format(val_raw_pose_data_path))
+    augmentation_configs = get_augmentations(pose_config.get('augmentation_type', 'none'))
+    train_pose_dataset = build_pose_json_dataset(config['SignDataArguments'], 'train', augmentation_configs)
+    val_pose_dataset = build_pose_json_dataset(config['SignDataArguments'], 'dev', [])
     train_dataset = DatasetForSLT(tokenizer= tokenizer,
                                 sign_data_args=config['SignDataArguments'],
                                 split='train',
@@ -566,26 +528,15 @@ if __name__ == "__main__":
     sign_data_args = config['SignDataArguments']
     data_dir = sign_data_args['data_dir']
     test_annotation_path = sign_data_args.get('annotation_path', {}).get('test')
-    test_pose_path = sign_data_args['visual_features']['pose'].get('normalization', {}).get('test_json_dir')
-    if test_annotation_path is not None and not os.path.isabs(test_annotation_path):
-        test_annotation_path = os.path.join(data_dir, test_annotation_path)
-    if test_pose_path is not None and not os.path.isabs(test_pose_path):
-        test_pose_path = os.path.join(data_dir, test_pose_path)
+    test_annotation_path = resolve_data_path(data_dir, test_annotation_path)
+    test_pose_path = get_pose_json_dir(sign_data_args, 'test')
+    test_pose_dataset = build_pose_json_dataset(sign_data_args, 'test', [])
+    has_test_pose_source = (
+        test_pose_dataset is not None
+        or sign_data_args['visual_features']['pose'].get('test') is not None
+    )
 
-    if test_annotation_path and os.path.exists(test_annotation_path) and test_pose_path and os.path.isdir(test_pose_path):
-        test_pose_dataset = KeypointDatasetJSON(json_folder=test_pose_path,
-                                           kp_normalization=(
-                                               "global-pose_landmarks",
-                                               "local-right_hand_landmarks",
-                                               "local-left_hand_landmarks",
-                                               "local-face_landmarks",),
-                                           kp_normalization_method=pose_config['normalization']['normalization_method'],
-                                           data_key=pose_config['normalization']['data_key'],
-                                           missing_values=pose_config['missing_values'],
-                                           augmentation_configs=[],
-                                           load_from_raw=training_config['load_from_raw'],
-                                           interpolate=pose_config['interpolate'],
-                                           )
+    if test_annotation_path and os.path.exists(test_annotation_path) and has_test_pose_source:
         test_dataset = DatasetForSLT(tokenizer=tokenizer,
                                 sign_data_args=sign_data_args,
                                 split='test',

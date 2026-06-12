@@ -14,7 +14,7 @@ from sacrebleu.metrics import BLEU
 from rouge_score import rouge_scorer
 import yaml
 from dataset.generic_sl_dataset import SignFeatureDataset as DatasetForSLT
-from utils.keypoint_dataset import KeypointDatasetJSON
+from utils.pose_data import build_pose_json_dataset
 
 load_dotenv()
 
@@ -223,27 +223,7 @@ def main():
             "labels": labels
         }
     # Prepare dataset
-    pose_config = config['SignDataArguments']['visual_features']['pose']
-    test_raw_pose_data_path = pose_config['normalization']['test_json_dir']
-
-    if os.path.isdir(test_raw_pose_data_path):
-        test_pose_dataset = KeypointDatasetJSON(json_folder=test_raw_pose_data_path,
-                                           kp_normalization=(
-                                               "global-pose_landmarks",
-                                               "local-right_hand_landmarks",
-                                               "local-left_hand_landmarks",
-                                               "local-face_landmarks",),
-                                           kp_normalization_method=pose_config['normalization']['normalization_method'],
-                                           data_key=pose_config['normalization']['data_key'],
-                                           missing_values=pose_config['missing_values'],
-                                           augmentation_configs=[],
-                                           load_from_raw=evaluation_config['load_from_raw'],
-                                           interpolate=pose_config['interpolate'],
-                                           )
-        print('Train raw pose data path: {}'.format(test_raw_pose_data_path))
-    else:
-        test_pose_dataset = None
-        print('Raw poses not found in {}'.format(test_raw_pose_data_path))
+    test_pose_dataset = build_pose_json_dataset(config['SignDataArguments'], evaluation_config['split'])
 
     dataset = DatasetForSLT(tokenizer= tokenizer,
                                 sign_data_args=config['SignDataArguments'],

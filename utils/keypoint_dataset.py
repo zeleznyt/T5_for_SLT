@@ -89,6 +89,7 @@ def interpolate_keypoints(keypoints: dict, max_distance: int, round_digits: int 
 def get_json_files(json_dir):
     json_files = [os.path.join(json_dir, json_file) for json_file in os.listdir(json_dir) if
                   json_file.endswith('.json')]
+    json_files.sort()
     return json_files
 
 
@@ -104,11 +105,10 @@ class KeypointDatasetJSON(Dataset):
             augmentation_configs: list = [],
             augmentation_per_frame: bool = False,
             interpolate: int = -1,
-            load_from_raw=True,
     ):
         """
         Args:
-            json_folder: Folder containing raw keypoints in json files or data_key folders containing json files (see load_from_raw).
+            json_folder: Folder containing keypoint JSON files.
             clip_to_video: A mapping from clip names to video names.
                            If None each json file will be considered as separate clip.
             kp_normalization: Order and type of normalization tha will be used for individual keypoint groups.
@@ -127,13 +127,8 @@ class KeypointDatasetJSON(Dataset):
             augmentation_per_frame: If True, apply augmentation to each frame separately,
                                     else all frames in clip will be augmented in same way.
             interpolate: linear interpolation of keypoints if the missign sequenc is =< than interpolate value
-            load_from_raw:  If True, load data from raw json files in json_folder.
-                            If False, load data from folder named by data_key in the root directory json_folder.
         """
-        if load_from_raw in ["False", "false", False]:
-            json_list = get_json_files(os.path.join(json_folder, data_key))
-        else:
-            json_list = get_json_files(json_folder)
+        json_list = get_json_files(json_folder)
         self.video_to_files = {}
         for idx, path in enumerate(json_list):
             name = os.path.basename(path)

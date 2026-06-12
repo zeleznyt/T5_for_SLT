@@ -22,7 +22,6 @@ EvaluationArguments:
   max_token_length: 128
   float32: False
   decimal_points: -1
-  load_from_raw: False
 #  Generation parameters
   model_dir: /media/zeleznyt/DATA/T5_for_SLT/results/T5_YTASL_pretrain/checkpoint-20
   batch_size: 2
