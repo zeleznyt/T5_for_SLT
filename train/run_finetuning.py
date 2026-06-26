@@ -344,6 +344,7 @@ if __name__ == "__main__":
                                 float32=training_config['float32'],
                                 decimal_points=training_config['decimal_points'],
                                 paraphrases=training_config['use_paraphrases'],
+                                merge_clips=training_config['merge_clips'],
                                 )
 
     val_dataset = DatasetForSLT(tokenizer= tokenizer,
@@ -357,6 +358,7 @@ if __name__ == "__main__":
                                 float32=training_config['float32'],
                                 decimal_points=training_config['decimal_points'],
                                 paraphrases=False,
+                                merge_clips=training_config['merge_clips'],
                                 )
 
     if args.verbose:

@@ -30,6 +30,7 @@ class SignFeatureDataset(Dataset):
         float32=False,
         decimal_points=-1,
         paraphrases=False,
+        merge_clips=False,
     ):
         """
 
@@ -52,6 +53,7 @@ class SignFeatureDataset(Dataset):
         self.float32 = False if float32 in ["False", "false", False] else True
         self.decimal_points = int(decimal_points)
         self.paraphrases = paraphrases
+        self.merge_clips = merge_clips
         data_dir = sign_data_args['data_dir']
 
         assert self.split in ['train', 'dev', 'test'], 'split must be in ["train", "dev", "test"]'
@@ -115,30 +117,57 @@ class SignFeatureDataset(Dataset):
         return len(self.list_data)
 
     def __getitem__(self, i) -> Dict[str, torch.Tensor]:
+        vf = None
         video_id, clip_id = self.list_data[i]
+        video_clip_count = len(self.clip_order_from_int[video_id])
         clip_name = self.clip_order_from_int[video_id][clip_id]
+        clip_names = []
 
         # Get the visual features
         visual_features = {}
         for input_type in INPUT_TYPES:
-            if input_type == 'pose' and self.pose_dataset is not None:
-                    clip_data = self.pose_dataset.get_clip_data(clip_name)
-                    if not self.float32:
-                        clip_data = clip_data.astype(np.dtype('float16'))
-                    if self.decimal_points > 0:
-                        clip_data = np.round(clip_data, self.decimal_points)
-                    vf = torch.tensor(clip_data).float()
-                    visual_features[input_type] = vf
-            else:
-                if self.h5_data[input_type] is not None:
-                    shard = self.h5shard[self.split][input_type][video_id]
-                    vf = torch.tensor(np.array(self.h5_data[input_type][shard][video_id][clip_name]))
-
-                    visual_features[input_type] = vf
+            vf = torch.empty(0, 208)
+            while True:
+                if input_type == 'pose' and self.pose_dataset is not None:
+                        clip_data = self.pose_dataset.get_clip_data(clip_name)
+                        if not self.float32:
+                            clip_data = clip_data.astype(np.dtype('float16'))
+                        if self.decimal_points > 0:
+                            clip_data = np.round(clip_data, self.decimal_points)
+                        vf_new = torch.tensor(clip_data).float()
                 else:
-                    visual_features[input_type] = None
-
+                    if self.h5_data[input_type] is not None:
+                        shard = self.h5shard[self.split][input_type][video_id]
+                        vf_new = torch.tensor(np.array(self.h5_data[input_type][shard][video_id][clip_name]))
+                    else:
+                        visual_features[input_type] = None
+                        break
+                if torch.cat([vf, vf_new], dim=0).shape[0] < 250:
+                    clip_names.append(clip_name)
+                    vf = torch.cat([vf, vf_new], dim=0)
+                    clip_id += 1
+                    if clip_id < video_clip_count:
+                        clip_name = self.clip_order_from_int[video_id][clip_id]
+                    else:
+                        visual_features[input_type] = vf
+                        break
+                else:
+                    visual_features[input_type] = vf
+                    break
+                if not self.merge_clips:
+                    visual_features[input_type] = vf
+                    break
+        clip_name = clip_names.pop(0)
         clip_dict = self.annotation[video_id][clip_name]
+        for clip_name in clip_names:
+            _clip_dict = self.annotation[video_id][clip_name]
+            clip_dict['translation'] += ' ' + _clip_dict['translation']
+            for keyword in _clip_dict['keywords']:
+                if keyword not in clip_dict['keywords']:
+                    clip_dict['keywords'].append(keyword)
+            #Paraphrases are not in all clips or are different ammount of times in clips, so they are ignored for now
+            # for paraphrase_i in range(len(_clip_dict['paraphrases'])):
+            #     clip_dict['paraphrases'][paraphrase_i] += ' ' + _clip_dict['paraphrases'][paraphrase_i]
         if self.paraphrases:
             translation = random.choice(clip_dict['paraphrases'] + [clip_dict['translation']])
         else:

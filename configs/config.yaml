@@ -51,6 +51,7 @@ TrainingArguments:
   decimal_points: -1
   load_from_raw: False
   use_paraphrases: False
+  merge_clips: False
 #  Evaluation
   num_beams: 5
   early_stopping: False
